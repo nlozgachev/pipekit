@@ -1,0 +1,227 @@
+import { WithError, WithKind, WithValue } from "./InternalTypes.ts";
+
+/**
+ * Result represents a value that can be one of two types: a success (Ok) or a failure (Err).
+ * Use Result when an operation can fail with a meaningful error value.
+ *
+ * @example
+ * ```ts
+ * const divide = (a: number, b: number): Result<string, number> =>
+ *   b === 0 ? Result.toErr("Division by zero") : Result.toOk(a / b);
+ *
+ * pipe(
+ *   divide(10, 2),
+ *   Result.map(n => n * 2),
+ *   Result.getOrElse(0)
+ * ); // 10
+ * ```
+ */
+export type Result<E, A> = Ok<A> | Err<E>;
+
+export type Ok<A> = WithKind<"Ok"> & WithValue<A>;
+export type Err<E> = WithKind<"Error"> & WithError<E>;
+
+export namespace Result {
+  /**
+   * Wraps a value in a successful Result (Ok).
+   *
+   * @example
+   * ```ts
+   * Result.of(42); // Ok(42)
+   * ```
+   */
+  export const of = <E, A>(value: A): Result<E, A> => toOk(value);
+
+  /**
+   * Creates a failed Result with the given error.
+   */
+  export const toErr = <E>(error: E): Err<E> => ({ kind: "Error", error });
+
+  /**
+   * Creates a successful Result with the given value.
+   */
+  export const toOk = <A>(value: A): Ok<A> => ({ kind: "Ok", value });
+
+  /**
+   * Type guard that checks if an Result is Ok.
+   */
+  export const isOk = <E, A>(data: Result<E, A>): data is Ok<A> => data.kind === "Ok";
+
+  /**
+   * Type guard that checks if an Result is Err.
+   */
+  export const isErr = <E, A>(data: Result<E, A>): data is Err<E> => data.kind === "Error";
+
+  /**
+   * Creates an Result from a function that may throw.
+   * Catches any errors and transforms them using the onError function.
+   *
+   * @example
+   * ```ts
+   * const parseJson = (s: string): Result<string, unknown> =>
+   *   Result.tryCatch(
+   *     () => JSON.parse(s),
+   *     (e) => `Parse error: ${e}`
+   *   );
+   * ```
+   */
+  export const tryCatch = <E, A>(
+    f: () => A,
+    onError: (e: unknown) => E,
+  ): Result<E, A> => {
+    try {
+      return toOk(f());
+    } catch (e) {
+      return toErr(onError(e));
+    }
+  };
+
+  /**
+   * Transforms the success value inside an Result.
+   *
+   * @example
+   * ```ts
+   * pipe(Result.of(5), Result.map(n => n * 2)); // Ok(10)
+   * pipe(Result.toErr("error"), Result.map(n => n * 2)); // Err("error")
+   * ```
+   */
+  export const map = <E, A, B>(f: (a: A) => B) => (data: Result<E, A>): Result<E, B> =>
+    isOk(data) ? toOk(f(data.value)) : data;
+
+  /**
+   * Transforms the error value inside an Result.
+   *
+   * @example
+   * ```ts
+   * pipe(Result.toErr("oops"), Result.mapError(e => e.toUpperCase())); // Err("OOPS")
+   * ```
+   */
+  export const mapError = <E, F, A>(f: (e: E) => F) => (data: Result<E, A>): Result<F, A> =>
+    isErr(data) ? toErr(f(data.error)) : data;
+
+  /**
+   * Chains Result computations. If the first is Ok, passes the value to f.
+   * If the first is Err, propagates the error.
+   *
+   * @example
+   * ```ts
+   * const validatePositive = (n: number): Result<string, number> =>
+   *   n > 0 ? Result.of(n) : Result.toErr("Must be positive");
+   *
+   * pipe(Result.of(5), Result.chain(validatePositive)); // Ok(5)
+   * pipe(Result.of(-1), Result.chain(validatePositive)); // Err("Must be positive")
+   * ```
+   */
+  export const chain = <E, A, B>(f: (a: A) => Result<E, B>) => (data: Result<E, A>): Result<E, B> =>
+    isOk(data) ? f(data.value) : data;
+
+  /**
+   * Extracts the value from an Result by providing handlers for both cases.
+   *
+   * @example
+   * ```ts
+   * pipe(
+   *   Result.of(5),
+   *   Result.fold(
+   *     e => `Error: ${e}`,
+   *     n => `Value: ${n}`
+   *   )
+   * ); // "Value: 5"
+   * ```
+   */
+  export const fold = <E, A, B>(onErr: (e: E) => B, onOk: (a: A) => B) => (data: Result<E, A>): B =>
+    isOk(data) ? onOk(data.value) : onErr(data.error);
+
+  /**
+   * Pattern matches on a Result, returning the result of the matching case.
+   *
+   * @example
+   * ```ts
+   * pipe(
+   *   result,
+   *   Result.match({
+   *     ok: value => `Got ${value}`,
+   *     err: error => `Failed: ${error}`
+   *   })
+   * );
+   * ```
+   */
+  export const match =
+    <E, A, B>(cases: { ok: (a: A) => B; err: (e: E) => B }) => (data: Result<E, A>): B =>
+      isOk(data) ? cases.ok(data.value) : cases.err(data.error);
+
+  /**
+   * Returns the success value or a default value if the Result is an error.
+   *
+   * @example
+   * ```ts
+   * pipe(Result.of(5), Result.getOrElse(0)); // 5
+   * pipe(Result.toErr("error"), Result.getOrElse(0)); // 0
+   * ```
+   */
+  export const getOrElse = <E, A>(defaultValue: A) => (data: Result<E, A>): A =>
+    isOk(data) ? data.value : defaultValue;
+
+  /**
+   * Executes a side effect on the success value without changing the Result.
+   * Useful for logging or debugging.
+   *
+   * @example
+   * ```ts
+   * pipe(
+   *   Result.of(5),
+   *   Result.tap(n => console.log("Value:", n)),
+   *   Result.map(n => n * 2)
+   * );
+   * ```
+   */
+  export const tap = <E, A>(f: (a: A) => void) => (data: Result<E, A>): Result<E, A> => {
+    if (isOk(data)) f(data.value);
+    return data;
+  };
+
+  /**
+   * Recovers from an error by providing a fallback Result.
+   */
+  export const recover =
+    <E, A>(fallback: () => Result<E, A>) => (data: Result<E, A>): Result<E, A> =>
+      isOk(data) ? data : fallback();
+
+  /**
+   * Recovers from an error unless it matches the blocked error.
+   */
+  export const recoverUnless =
+    <E, A>(blockedErr: E, fallback: () => Result<E, A>) => (data: Result<E, A>): Result<E, A> =>
+      isErr(data) && data.error !== blockedErr ? fallback() : data;
+
+  /**
+   * Converts a Result to an Option.
+   * Ok becomes Some, Err becomes None (the error is discarded).
+   *
+   * @example
+   * ```ts
+   * Result.toOption(Result.toOk(42)); // Some(42)
+   * Result.toOption(Result.toErr("oops")); // None
+   * ```
+   */
+  export const toOption = <E, A>(
+    data: Result<E, A>,
+  ): import("./Option.ts").Option<A> =>
+    isOk(data) ? { kind: "Some", value: data.value } : { kind: "None" };
+
+  /**
+   * Applies a function wrapped in an Result to a value wrapped in an Result.
+   *
+   * @example
+   * ```ts
+   * const add = (a: number) => (b: number) => a + b;
+   * pipe(
+   *   Result.of(add),
+   *   Result.ap(Result.of(5)),
+   *   Result.ap(Result.of(3))
+   * ); // Ok(8)
+   * ```
+   */
+  export const ap = <E, A>(arg: Result<E, A>) => <B>(data: Result<E, (a: A) => B>): Result<E, B> =>
+    isOk(data) && isOk(arg) ? toOk(data.value(arg.value)) : isErr(data) ? data : (arg as Err<E>);
+}

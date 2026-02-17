@@ -1,0 +1,31 @@
+{
+  "name": "@nlozgachev/fp-lib",
+  "version": "0.1.0",
+  "exports": {
+    "./Composition": "./src/Composition/index.ts",
+    "./Core": "./src/Core/index.ts",
+    "./Types": "./src/Types/index.ts"
+  },
+  "tasks": {
+    "test": "deno test",
+    "publish:jsr": "deno publish",
+    "build:npm": "deno run -A scripts/build_npm.ts",
+    "publish:npm": "deno task build:npm && cd npm && npm publish --access public"
+  },
+  "fmt": {
+    "lineWidth": 100
+  },
+  "lint": {
+    "rules": {
+      "tags": [
+        "recommended"
+      ],
+      "exclude": [
+        "no-namespace"
+      ]
+    }
+  },
+  "imports": {
+    "@deno/dnt": "jsr:@deno/dnt@^0.42.3"
+  }
+}

@@ -1,0 +1,106 @@
+import { Result } from "./Result.ts";
+import { Task } from "./Task.ts";
+
+/**
+ * A Task that can fail with an error of type E or succeed with a value of type A.
+ * Combines async operations with typed error handling.
+ *
+ * @example
+ * ```ts
+ * const fetchUser = (id: string): TaskResult<Error, User> =>
+ *   TaskResult.tryCatch(
+ *     () => fetch(`/users/${id}`).then(r => r.json()),
+ *     (e) => new Error(`Failed to fetch user: ${e}`)
+ *   );
+ * ```
+ */
+export type TaskResult<E, A> = Task<Result<E, A>>;
+
+export namespace TaskResult {
+  /**
+   * Wraps a value in a successful TaskResult.
+   */
+  export const of = <E, A>(value: A): TaskResult<E, A> => Task.of(Result.toOk(value));
+
+  /**
+   * Creates a failed TaskResult with the given error.
+   */
+  export const fail = <E, A>(error: E): TaskResult<E, A> => Task.of(Result.toErr(error));
+
+  /**
+   * Creates a TaskResult from a function that may throw.
+   * Catches any errors and transforms them using the onError function.
+   *
+   * @example
+   * ```ts
+   * const parseJson = (s: string): TaskResult<string, unknown> =>
+   *   TaskResult.tryCatch(
+   *     async () => JSON.parse(s),
+   *     (e) => `Parse error: ${e}`
+   *   );
+   * ```
+   */
+  export const tryCatch =
+    <E, A>(f: () => Promise<A>, onError: (e: unknown) => E): TaskResult<E, A> => () =>
+      f()
+        .then(Result.toOk)
+        .catch((e) => Result.toErr(onError(e)));
+
+  /**
+   * Transforms the success value inside a TaskResult.
+   */
+  export const map = <E, A, B>(f: (a: A) => B) => (data: TaskResult<E, A>): TaskResult<E, B> =>
+    Task.map(Result.map<E, A, B>(f))(data);
+
+  /**
+   * Transforms the error value inside a TaskResult.
+   */
+  export const mapError = <E, F, A>(f: (e: E) => F) => (data: TaskResult<E, A>): TaskResult<F, A> =>
+    Task.map(Result.mapError<E, F, A>(f))(data);
+
+  /**
+   * Chains TaskResult computations. If the first succeeds, passes the value to f.
+   * If the first fails, propagates the error.
+   */
+  export const chain =
+    <E, A, B>(f: (a: A) => TaskResult<E, B>) => (data: TaskResult<E, A>): TaskResult<E, B> =>
+      Task.chain((result: Result<E, A>) =>
+        Result.isOk(result) ? f(result.value) : Task.of(Result.toErr(result.error))
+      )(data);
+
+  /**
+   * Extracts the value from a TaskResult by providing handlers for both cases.
+   */
+  export const fold =
+    <E, A, B>(onErr: (e: E) => B, onOk: (a: A) => B) => (data: TaskResult<E, A>): Task<B> =>
+      Task.map(Result.fold(onErr, onOk))(data);
+
+  /**
+   * Pattern matches on a TaskResult, returning a Task of the result.
+   */
+  export const match =
+    <E, A, B>(cases: { err: (e: E) => B; ok: (a: A) => B }) => (data: TaskResult<E, A>): Task<B> =>
+      Task.map(Result.match<E, A, B>(cases))(data);
+
+  /**
+   * Recovers from an error by providing a fallback TaskResult.
+   */
+  export const recover =
+    <E, A>(fallback: (e: E) => TaskResult<E, A>) => (data: TaskResult<E, A>): TaskResult<E, A> =>
+      Task.chain((result: Result<E, A>) =>
+        Result.isErr(result) ? fallback(result.error) : Task.of(result)
+      )(data);
+
+  /**
+   * Returns the success value or a default value if the TaskResult is an error.
+   */
+  export const getOrElse = <E, A>(defaultValue: A) => (data: TaskResult<E, A>): Task<A> =>
+    Task.map(Result.getOrElse<E, A>(defaultValue))(data);
+
+  /**
+   * Executes a side effect on the success value without changing the TaskResult.
+   * Useful for logging or debugging.
+   */
+  export const tap = <E, A>(f: (a: A) => void) => (data: TaskResult<E, A>): TaskResult<E, A> =>
+    Task.map(Result.tap<E, A>(f))(data);
+}
