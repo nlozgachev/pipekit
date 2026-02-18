@@ -1,0 +1,59 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  verify-version:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+      - name: Check tag matches deno.json version
+        run: |
+          TAG=${GITHUB_REF_NAME#v}
+          VERSION=$(deno eval "import d from './deno.json' with {type:'json'}; console.log(d.version)")
+          if [ "$TAG" != "$VERSION" ]; then
+            echo "Tag $TAG does not match deno.json version $VERSION"
+            exit 1
+          fi
+
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+      - run: deno task test --coverage=coverage
+      - run: deno coverage coverage --lcov --output=coverage.lcov
+      - uses: codecov/codecov-action@v5
+        with:
+          files: coverage.lcov
+
+  publish-jsr:
+    needs: [verify-version, test]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write # required for JSR OIDC auth
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+      - run: deno publish
+
+  publish-npm:
+    needs: [verify-version, test]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+      - run: deno task build:npm
+      - run: npm publish --access public
+        working-directory: npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
