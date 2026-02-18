@@ -23,13 +23,12 @@ await build({
   outDir: "./npm",
   shims: {
     deno: false,
-    timers: true,
   },
   declaration: "separate",
   test: false,
   typeCheck: "both",
   compilerOptions: {
-    lib: ["ES2022"],
+    lib: ["ES2022", "DOM"],
     target: "ES2022",
   },
   package: {
