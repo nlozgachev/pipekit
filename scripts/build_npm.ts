@@ -6,6 +6,7 @@ await emptyDir("./npm");
 
 await build({
   entryPoints: [
+    "mod.ts",
     {
       name: "./Composition",
       path: "./src/Composition/index.ts",
@@ -24,6 +25,7 @@ await build({
     deno: false,
     timers: true,
   },
+  declaration: "separate",
   test: false,
   typeCheck: "both",
   compilerOptions: {
@@ -47,7 +49,7 @@ await build({
     try {
       Deno.copyFileSync("README.md", "npm/README.md");
     } catch {
-      // README is optional
+      console.error("ERROR: Unable to copy README.md");
     }
 
     const pkgPath = "./npm/package.json";
@@ -56,26 +58,9 @@ await build({
     delete pkg.main;
     delete pkg.module;
     delete pkg._generatedBy;
+    delete pkg.exports["."];
 
-    pkg.files = ["esm", "script"];
-
-    for (const entry of Object.values(pkg.exports) as Record<
-      string,
-      string | Record<string, string>
-    >[]) {
-      if (typeof entry.import === "string") {
-        entry.import = {
-          types: entry.import.replace(/\.js$/, ".d.ts"),
-          default: entry.import,
-        };
-      }
-      if (typeof entry.require === "string") {
-        entry.require = {
-          types: entry.require.replace(/\.js$/, ".d.ts"),
-          default: entry.require,
-        };
-      }
-    }
+    pkg.files = ["esm", "script", "types"];
 
     Deno.writeTextFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
   },

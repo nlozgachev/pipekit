@@ -1,6 +1,6 @@
 {
   "name": "@nlozgachev/fp-lib",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "exports": {
     "./Composition": "./src/Composition/index.ts",
     "./Core": "./src/Core/index.ts",
