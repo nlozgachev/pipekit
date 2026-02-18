@@ -25,7 +25,8 @@ You can start using these types and functions right away, and learn the underlyi
 Everything in the library is designed to work with `pipe` — a function that passes a value through a series of transformations, top to bottom:
 
 ```ts
-import { pipe, Option } from "@nlozgachev/fp-lib";
+import { Option } from "@nlozgachev/fp-lib/Core";
+import { pipe } from "@nlozgachev/fp-lib/Composition";
 
 const userName = pipe(
   users.get("123"),          // User | undefined
@@ -42,7 +43,8 @@ No method chaining, no class hierarchies. Just functions that connect together.
 Every operation takes the data it operates on as the **last** argument. This means you can build reusable pipelines without specifying the data upfront:
 
 ```ts
-import { flow, Option } from "@nlozgachev/fp-lib";
+import { Option } from "@nlozgachev/fp-lib/Core";
+import { flow } from "@nlozgachev/fp-lib/Composition";
 
 // Create a reusable transformation — no data yet
 const getDisplayName = flow(
@@ -89,11 +91,10 @@ The same idea applies to error handling with `Result`, form validation with `Val
 - **`Task<A>`** — a lazy async operation. A `Promise` that doesn't run until you tell it to.
 - **`TaskResult<E, A>`** — a lazy async operation that can fail. Combines `Task` + `Result`.
 - **`RemoteData<E, A>`** — models the four states of a data fetch: not asked, loading, failure, success. Replaces boolean flag soup.
-
-### Utilities
-
 - **`Arr`** — functional array operations (`head`, `findFirst`, `groupBy`, `partition`, etc.) that return `Option` instead of `undefined`.
 - **`Rec`** — functional record/object operations (`lookup`, `map`, `filter`, `pick`, `omit`, etc.).
+
+### Type utilities
 - **`NonEmptyList<A>`** — an array guaranteed to have at least one element.
 
 ### Composition
@@ -112,8 +113,8 @@ The same idea applies to error handling with `Result`, form validation with `Val
 # Deno
 deno add jsr:@nlozgachev/fp-lib
 
-# npm (via jsr)
-npx jsr add @nlozgachev/fp-lib
+# npm
+npm i @nlozgachev/fp-lib
 ```
 
 ## How do I get started?
@@ -121,7 +122,8 @@ npx jsr add @nlozgachev/fp-lib
 Start with `pipe` and `Option`. These two cover the most common pain point — dealing with values that might not exist:
 
 ```ts
-import { pipe, Option } from "@nlozgachev/fp-lib";
+import { Option } from "@nlozgachev/fp-lib/Core";
+import { pipe } from "@nlozgachev/fp-lib/Composition";
 
 // Safely access nested optional data
 const city = pipe(
