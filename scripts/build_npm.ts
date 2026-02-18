@@ -36,6 +36,10 @@ await build({
     description: "Simple functional programming toolkit for TypeScript",
     license: "MIT",
     sideEffects: false,
+    repository: {
+      type: "git",
+      url: "https://github.com/nlozgachev/fp-lib",
+    },
   },
   postBuild() {
     try {

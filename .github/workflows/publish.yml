@@ -57,5 +57,5 @@ jobs:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
       - run: deno task build:npm
-      - run: npm publish
+      - run: npm publish --provenance --access public
         working-directory: npm
