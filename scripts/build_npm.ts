@@ -40,6 +40,8 @@ await build({
       type: "git",
       url: "https://github.com/nlozgachev/fp-lib",
     },
+    keywords: ["functional", "fp", "typescript", "composition", "pipe"],
+    engines: { node: ">=22" },
   },
   postBuild() {
     try {
@@ -50,8 +52,31 @@ await build({
 
     const pkgPath = "./npm/package.json";
     const pkg = JSON.parse(Deno.readTextFileSync(pkgPath));
+
     delete pkg.main;
     delete pkg.module;
+    delete pkg._generatedBy;
+
+    pkg.files = ["esm", "script"];
+
+    for (const entry of Object.values(pkg.exports) as Record<
+      string,
+      string | Record<string, string>
+    >[]) {
+      if (typeof entry.import === "string") {
+        entry.import = {
+          types: entry.import.replace(/\.js$/, ".d.ts"),
+          default: entry.import,
+        };
+      }
+      if (typeof entry.require === "string") {
+        entry.require = {
+          types: entry.require.replace(/\.js$/, ".d.ts"),
+          default: entry.require,
+        };
+      }
+    }
+
     Deno.writeTextFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
   },
 });
