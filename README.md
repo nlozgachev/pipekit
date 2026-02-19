@@ -4,6 +4,14 @@
 
 A TypeScript toolkit for writing code that means exactly what it says.
 
+```sh
+# npm / pnpm / yarn / bun
+npm add @nlozgachev/pipekit
+
+# Deno
+deno add jsr:@nlozgachev/pipekit
+```
+
 ## What is this?
 
 A TypeScript toolkit for expressing uncertainty precisely — absent values, fallible operations,
@@ -203,16 +211,6 @@ getUser(toUserId("u-42")); // ✓
 The same idea applies to error handling with `Result`, form validation with `Validation`, async
 operations with `Task`, `TaskResult`, `TaskOption`, and `TaskValidation`, and loading states with
 `RemoteData`.
-
-## How do I install it?
-
-```sh
-# Deno
-deno add jsr:@nlozgachev/pipekit
-
-# npm / pnpm / yarn / bun
-npm add @nlozgachev/pipekit
-```
 
 ## How do I get started?
 
