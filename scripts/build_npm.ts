@@ -32,14 +32,14 @@ await build({
     target: "ES2022",
   },
   package: {
-    name: "@nlozgachev/fp-lib",
+    name: "@nlozgachev/pipekit",
     version: denoJson.version,
     description: "Simple functional programming toolkit for TypeScript",
     license: "MIT",
     sideEffects: false,
     repository: {
       type: "git",
-      url: "https://github.com/nlozgachev/fp-lib",
+      url: "https://github.com/nlozgachev/pipekit",
     },
     keywords: ["functional", "fp", "typescript", "composition", "pipe"],
     engines: { node: ">=22" },

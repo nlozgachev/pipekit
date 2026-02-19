@@ -1,6 +1,6 @@
 {
-  "name": "@nlozgachev/fp-lib",
-  "version": "0.1.4",
+  "name": "@nlozgachev/pipekit",
+  "version": "0.1.5",
   "exports": {
     "./Composition": "./src/Composition/index.ts",
     "./Core": "./src/Core/index.ts",
