@@ -27,26 +27,11 @@ Deno.test("flow - three functions execute left-to-right", () => {
 
 Deno.test("flow - left-to-right order confirmed", () => {
   const log: string[] = [];
-  const a = (n: number) => {
-    log.push("a");
-    return n + 1;
-  };
-  const b = (n: number) => {
-    log.push("b");
-    return n * 2;
-  };
-  const c = (n: number) => {
-    log.push("c");
-    return n + 10;
-  };
+  const a = (x: string) => { log.push("a"); return x; };
+  const b = (x: string) => { log.push("b"); return x; };
+  const c = (x: string) => { log.push("c"); return x; };
 
-  const fn = flow(a, b, c);
-  const result = fn(5);
-
-  // a runs first: 5 + 1 = 6
-  // b runs second: 6 * 2 = 12
-  // c runs third: 12 + 10 = 22
-  assertStrictEquals(result, 22);
+  flow(a, b, c)("");
   assertEquals(log, ["a", "b", "c"]);
 });
 
@@ -82,7 +67,7 @@ Deno.test("flow - integration with Option", () => {
   const safeParseAndDouble = flow(
     (s: string) => {
       const n = parseInt(s, 10);
-      return isNaN(n) ? Option.toNone() as Option<number> : Option.of(n);
+      return isNaN(n) ? (Option.toNone() as Option<number>) : Option.of(n);
     },
     Option.map((n: number) => n * 2),
     Option.getOrElse(0),
@@ -110,4 +95,21 @@ Deno.test("flow - type transformation across functions", () => {
   );
   assertStrictEquals(fn(5), false);
   assertStrictEquals(fn(10), true);
+});
+
+// ---------------------------------------------------------------------------
+// zero-function edge case (exercises the implementation's defensive guard)
+// ---------------------------------------------------------------------------
+
+Deno.test("flow - zero functions returns the first argument unchanged", () => {
+  // The typed overloads don't expose flow() with no arguments, but the
+  // underlying implementation has a defensive guard: if no functions are
+  // provided, return the first argument as-is.
+  const identity = (
+    flow as (
+      ...fns: Array<(...a: unknown[]) => unknown>
+    ) => (...a: unknown[]) => unknown
+  )();
+  assertStrictEquals(identity(42), 42);
+  assertStrictEquals(identity("hello"), "hello");
 });

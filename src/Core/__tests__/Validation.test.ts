@@ -550,3 +550,33 @@ Deno.test("Validation pipe chain with Invalid short-circuits in chain", () => {
   );
   assertStrictEquals(result, 0);
 });
+
+// ---------------------------------------------------------------------------
+// defensive fallbacks for impossible states (exercises uncovered else-branches)
+// ---------------------------------------------------------------------------
+
+// Both `ap` and `combine` build an errors array then guard it with
+// isNonEmptyList. Under normal usage the array is always non-empty (because
+// NonEmptyList<E> guarantees at least one error). The else-branch is a
+// defensive fallback that is unreachable through the public API, but we cover
+// it here by forcing an Invalid with an empty errors array via a type cast.
+
+Deno.test("Validation.ap defensive branch: Invalid with empty errors falls back to Valid", () => {
+  // Impossible in real code — an Invalid always has at least one error.
+  const badFn = { kind: "Invalid", errors: [] } as unknown as Validation<
+    string,
+    (n: number) => number
+  >;
+  const result = Validation.ap(Validation.of<string, number>(5))(badFn);
+  // errors = [], isNonEmptyList([]) === false → falls back to of(data as never)
+  assertEquals(result as unknown, { kind: "Valid", value: badFn });
+});
+
+Deno.test("Validation.combine defensive branch: two Invalids with empty errors falls back to second", () => {
+  // Impossible in real code — an Invalid always has at least one error.
+  const empty1 = { kind: "Invalid", errors: [] } as unknown as Validation<string, number>;
+  const empty2 = { kind: "Invalid", errors: [] } as unknown as Validation<string, number>;
+  const result = Validation.combine(empty1, empty2);
+  // errors = [], isNonEmptyList([]) === false → falls back to returning second
+  assertStrictEquals(result, empty2);
+});

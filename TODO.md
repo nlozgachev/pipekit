@@ -1,11 +1,5 @@
 # pipekit — 1.0.0 Roadmap
 
-## Complement Existing Types
-
-- [ ] `TaskOption<A>` -- async operations that may return nothing (`Task<Option<A>>`)
-- [ ] `TaskValidation<E, A>` -- async operations that accumulate errors (`Task<Validation<E, A>>`)
-- [ ] `These<E, A>` -- inclusive OR: left, right, or both (partial success with warnings)
-
 ## Dependency Injection
 
 - [ ] `Reader<R, A>` -- dependency injection without parameter drilling
@@ -14,13 +8,13 @@
 
 ## Type Safety
 
-- [ ] `Brand<K, T>` -- nominal/branded types to prevent mixing up same-typed values
 - [ ] `Refinement<A, B>` -- runtime validation with compile-time narrowing (NonEmptyString,
       PositiveNumber, etc.)
 
 ## Cross-Type Operations
 
-- [ ] `sequence` -- convert `Array<Option<A>>` → `Option<Array<A>>` (and similar for Result, Task, TaskResult)
+- [ ] `sequence` -- convert `Array<Option<A>>` → `Option<Array<A>>` (and similar for Result, Task,
+      TaskResult)
 - [ ] `traverse` -- map + sequence in one pass over a structure
 
 ## Task Utilities

@@ -4,5 +4,8 @@ export * from "./Rec.ts";
 export * from "./RemoteData.ts";
 export * from "./Result.ts";
 export * from "./Task.ts";
+export * from "./TaskOption.ts";
 export * from "./TaskResult.ts";
+export * from "./TaskValidation.ts";
+export * from "./These.ts";
 export * from "./Validation.ts";
