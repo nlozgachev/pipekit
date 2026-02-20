@@ -1,0 +1,60 @@
+---
+title: Installation
+description: Add pipekit to your TypeScript project via npm, JSR, or Deno.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+## Package managers
+
+<Tabs>
+  <TabItem label="npm">
+    ```sh
+    npm add @nlozgachev/pipekit
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add @nlozgachev/pipekit
+    ```
+  </TabItem>
+  <TabItem label="yarn">
+    ```sh
+    yarn add @nlozgachev/pipekit
+    ```
+  </TabItem>
+  <TabItem label="bun">
+    ```sh
+    bun add @nlozgachev/pipekit
+    ```
+  </TabItem>
+  <TabItem label="Deno">
+    ```sh
+    deno add jsr:@nlozgachev/pipekit
+    ```
+  </TabItem>
+</Tabs>
+
+## Imports
+
+The library is split into three entry points. Import only what you need:
+
+```ts
+import { Option, Result, Task } from "@nlozgachev/pipekit/Core";
+import { pipe, flow }           from "@nlozgachev/pipekit/Composition";
+import { Brand }                from "@nlozgachev/pipekit/Types";
+```
+
+| Entry point                      | Contains                                                                                     |
+| -------------------------------- | -------------------------------------------------------------------------------------------- |
+| `@nlozgachev/pipekit/Core`       | `Option`, `Result`, `Validation`, `Task`, `TaskResult`, `TaskOption`, `TaskValidation`, `These`, `RemoteData`, `Arr`, `Rec` |
+| `@nlozgachev/pipekit/Composition`| `pipe`, `flow`, `compose`, `curry`, `tap`, `memoize`, and other function utilities           |
+| `@nlozgachev/pipekit/Types`      | `Brand`, `NonEmptyList`                                                                      |
+
+## Requirements
+
+- **Node.js** 22 or later (for npm/pnpm/yarn/bun installs)
+- **Deno** 2 or later
+- **TypeScript** 5.4 or later with `strict` mode enabled
+
+Strict mode is required for the type-level guarantees — particularly exhaustiveness checking in `match` branches and narrowing in type guards — to work correctly.
