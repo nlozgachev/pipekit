@@ -34,6 +34,7 @@ await build({
   package: {
     name: "@nlozgachev/pipekit",
     version: denoJson.version,
+    homepage: "https://pipekit.lozgachev.dev",
     description: "Simple functional programming toolkit for TypeScript",
     license: "MIT",
     sideEffects: false,
