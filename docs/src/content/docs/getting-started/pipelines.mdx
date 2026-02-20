@@ -1,0 +1,166 @@
+---
+title: Thinking in pipelines
+description: Learn how pipe and flow let you write transformations that read in the order they execute.
+---
+
+Most transformations in code follow the same shape: start with a value, apply a series of steps, get a result. The challenge is how to express that sequence in a way that's easy to read and easy to change.
+
+## The problem with the alternatives
+
+There are two common patterns. The first uses intermediate variables:
+
+```ts
+const trimmed = raw.trim();
+const lower = trimmed.toLowerCase();
+const slug = lower.replace(/\s+/g, "-");
+```
+
+This reads cleanly, but every variable is noise — names like `trimmed` and `lower` exist only to carry a value to the next line. If you add, remove, or reorder a step, you have to rename things to stay consistent.
+
+The second nests calls directly:
+
+```ts
+const slug = raw.trim().toLowerCase().replace(/\s+/g, "-");
+```
+
+Fine for method chains on strings and arrays, but method chaining only works when the object has the method you need. It breaks down as soon as you want to compose your own functions or use library utilities that aren't methods on the value.
+
+## `pipe` — one value, a sequence of steps
+
+`pipe` takes a starting value and any number of functions. Each function receives the output of the previous one:
+
+```ts
+import { pipe } from "@nlozgachev/pipekit/Composition";
+
+const slug = pipe(
+  raw,
+  (s) => s.trim(),
+  (s) => s.toLowerCase(),
+  (s) => s.replace(/\s+/g, "-"),
+);
+```
+
+The code reads top-to-bottom, in exactly the order the steps execute. There are no intermediate variable names to invent. Adding a step means inserting a line; removing one means deleting it.
+
+TypeScript infers the type at each step from the return type of the previous function. If a step produces the wrong type for the next one, you get a type error at that specific step — not somewhere downstream.
+
+## Steps are just functions
+
+Any function that takes one argument and returns a value can be a step. That includes inline lambdas, named functions defined elsewhere, or partially-applied library functions:
+
+```ts
+import { pipe } from "@nlozgachev/pipekit/Composition";
+import { Option } from "@nlozgachev/pipekit/Core";
+
+const displayName = pipe(
+  users.get(userId),              // User | undefined
+  Option.fromNullable,            // Option<User>   — library function, passed directly
+  Option.map((u) => u.name),      // Option<string> — partially applied
+  Option.getOrElse("Anonymous"),  // string
+);
+```
+
+`Option.fromNullable` is passed as a step without wrapping it in an arrow function. `Option.map((u) => u.name)` is called with just the mapping function — it returns a new function waiting for the `Option`, which `pipe` supplies. This is the data-last convention, covered below.
+
+## `flow` — a pipeline as a reusable function
+
+`pipe` applies its steps to a value immediately. `flow` does the same thing but defers execution — it returns a function instead of a result:
+
+```ts
+import { flow } from "@nlozgachev/pipekit/Composition";
+
+const toSlug = flow(
+  (s: string) => s.trim(),
+  (s) => s.toLowerCase(),
+  (s) => s.replace(/\s+/g, "-"),
+);
+
+toSlug("  Hello World  "); // "hello-world"
+toSlug("TypeScript Pipes"); // "typescript-pipes"
+```
+
+`toSlug` is now a reusable function `(s: string) => string`. You can pass it to `Array.map`, store it in an object, or compose it further.
+
+The rule of thumb: use `pipe` when you have a value now and want a result now. Use `flow` when you want to name and reuse the transformation itself.
+
+```ts
+// pipe: immediate
+const result = pipe(input, stepA, stepB, stepC);
+
+// flow: reusable
+const transform = flow(stepA, stepB, stepC);
+const result = transform(input);
+items.map(transform); // no wrapper arrow function needed
+```
+
+## The data-last convention
+
+Every function in this library takes the data it operates on as its **last** argument. This is what makes steps slot into `pipe` and `flow` without wrapper functions.
+
+When you write `Option.map((u) => u.name)`, you get back a function waiting for an `Option`. `pipe` supplies it automatically. If the library used data-first signatures instead, every step would need a wrapper: `(opt) => Option.map(opt, (u) => u.name)`. Data-last eliminates that ceremony entirely:
+
+```ts
+pipe(
+  value,
+  Option.map((u) => u.name),            // (option: Option<User>) => Option<string>
+  Option.filter((n) => n.length > 0),   // (option: Option<string>) => Option<string>
+  Option.getOrElse("Anonymous"),         // (option: Option<string>) => string
+);
+```
+
+This also means `flow` composes library functions directly:
+
+```ts
+const formatUser = flow(
+  Option.fromNullable<User>,
+  Option.map((u) => u.name),
+  Option.getOrElse("Anonymous"),
+);
+
+users.map(formatUser); // works — no wrapper needed
+```
+
+## Inserting side effects with `tap`
+
+`tap` runs a function for its side effect and passes the original value through unchanged. It's the standard way to inspect a value mid-pipeline without breaking the chain:
+
+```ts
+import { pipe, tap } from "@nlozgachev/pipekit/Composition";
+
+const result = pipe(
+  input,
+  parse,
+  tap((v) => console.log("parsed:", v)),     // logs, then passes v through
+  validate,
+  tap((v) => console.log("validated:", v)),
+  format,
+);
+```
+
+Remove the `tap` lines and the pipeline behaves identically. Most types in the library also have their own `tap` — `Option.tap`, `Result.tap`, and so on — which only fire when a value is present.
+
+## Keeping steps small and focused
+
+A pipeline works best when each step does one thing. If a step grows into several lines of logic, that's a signal to extract it into a named function:
+
+```ts
+// Inline logic that has grown too large
+pipe(
+  rawInput,
+  (s) => {
+    const trimmed = s.trim();
+    const parts = trimmed.split(",");
+    return parts.filter((p) => p.length > 0).map((p) => p.toLowerCase());
+  },
+);
+
+// Named function: the pipeline reads as a description, the implementation lives elsewhere
+const parseTokens = (s: string): string[] =>
+  s.trim().split(",").filter((p) => p.length > 0).map((p) => p.toLowerCase());
+
+pipe(rawInput, parseTokens);
+```
+
+The pipeline describes *what* happens at each stage. The named functions describe *how*. Both levels are independently readable and independently testable.
+
+Once this way of structuring transformations feels natural, it tends to show up everywhere — not as a pattern you reach for deliberately, but as the obvious shape for code that does one thing at a time.
