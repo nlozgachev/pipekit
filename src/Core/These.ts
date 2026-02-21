@@ -132,11 +132,11 @@ export namespace These {
    * ```ts
    * pipe(
    *   These.both(5, "warn"),
-   *   These.bimap(n => n * 2, e => e.toUpperCase())
+   *   These.mapBoth(n => n * 2, e => e.toUpperCase())
    * ); // Both(10, "WARN")
    * ```
    */
-  export const bimap = <A, C, B, D>(onFirst: (a: A) => C, onSecond: (b: B) => D) =>
+  export const mapBoth = <A, C, B, D>(onFirst: (a: A) => C, onSecond: (b: B) => D) =>
   (
     data: These<A, B>,
   ): These<C, D> => {
@@ -147,26 +147,43 @@ export namespace These {
 
   /**
    * Chains These computations by passing the first value to f.
-   * - Second propagates unchanged.
-   * - First(a) applies f(a) directly.
-   * - Both(a, b): applies f(a); if the result is First(c), returns Both(c, b)
-   *   to preserve the second value. Otherwise returns f(a) as-is.
+   * Second propagates unchanged; First and Both apply f to the first value.
    *
    * @example
    * ```ts
    * const double = (n: number): These<number, string> => These.first(n * 2);
    *
-   * pipe(These.first(5), These.chain(double));            // First(10)
-   * pipe(These.both(5, "warn"), These.chain(double));     // Both(10, "warn")
-   * pipe(These.second("warn"), These.chain(double));      // Second("warn")
+   * pipe(These.first(5), These.chainFirst(double));            // First(10)
+   * pipe(These.both(5, "warn"), These.chainFirst(double));     // First(10)
+   * pipe(These.second("warn"), These.chainFirst(double));      // Second("warn")
    * ```
    */
-  export const chain = <A, B, C>(f: (a: A) => These<C, B>) => (data: These<A, B>): These<C, B> => {
-    if (isSecond(data)) return data;
-    if (isFirst(data)) return f(data.first);
-    const result = f(data.first);
-    return isFirst(result) ? both(result.first, data.second) : result;
-  };
+  export const chainFirst =
+    <A, B, C>(f: (a: A) => These<C, B>) =>
+    (data: These<A, B>): These<C, B> => {
+      if (isSecond(data)) return data;
+      return f(data.first);
+    };
+
+  /**
+   * Chains These computations by passing the second value to f.
+   * First propagates unchanged; Second and Both apply f to the second value.
+   *
+   * @example
+   * ```ts
+   * const shout = (s: string): These<number, string> => These.second(s.toUpperCase());
+   *
+   * pipe(These.second("warn"), These.chainSecond(shout));      // Second("WARN")
+   * pipe(These.both(5, "warn"), These.chainSecond(shout));     // Second("WARN")
+   * pipe(These.first(5), These.chainSecond(shout));            // First(5)
+   * ```
+   */
+  export const chainSecond =
+    <A, B, D>(f: (b: B) => These<A, D>) =>
+    (data: These<A, B>): These<A, D> => {
+      if (isFirst(data)) return data;
+      return f(data.second);
+    };
 
   /**
    * Extracts a value from a These by providing handlers for all three cases.
@@ -225,13 +242,26 @@ export namespace These {
    *
    * @example
    * ```ts
-   * pipe(These.first(5), These.getOrElse(0));            // 5
-   * pipe(These.both(5, "warn"), These.getOrElse(0));     // 5
-   * pipe(These.second("warn"), These.getOrElse(0));      // 0
+   * pipe(These.first(5), These.getFirstOrElse(0));            // 5
+   * pipe(These.both(5, "warn"), These.getFirstOrElse(0));     // 5
+   * pipe(These.second("warn"), These.getFirstOrElse(0));      // 0
    * ```
    */
-  export const getOrElse = <A>(defaultValue: A) => <B>(data: These<A, B>): A =>
+  export const getFirstOrElse = <A>(defaultValue: A) => <B>(data: These<A, B>): A =>
     hasFirst(data) ? data.first : defaultValue;
+
+  /**
+   * Returns the second value, or a default if the These has no second value.
+   *
+   * @example
+   * ```ts
+   * pipe(These.second("warn"), These.getSecondOrElse("none")); // "warn"
+   * pipe(These.both(5, "warn"), These.getSecondOrElse("none")); // "warn"
+   * pipe(These.first(5), These.getSecondOrElse("none"));       // "none"
+   * ```
+   */
+  export const getSecondOrElse = <B>(defaultValue: B) => <A>(data: These<A, B>): B =>
+    hasSecond(data) ? data.second : defaultValue;
 
   /**
    * Executes a side effect on the first value without changing the These.
@@ -255,9 +285,9 @@ export namespace These {
    *
    * @example
    * ```ts
-   * These.swap(These.first(5));           // Second(5)
-   * These.swap(These.second("warn"));     // First("warn")
-   * These.swap(These.both(5, "warn"));    // Both("warn", 5)
+   * These.swap(These.first(5));            // Second(5)
+   * These.swap(These.second("warn"));      // First("warn")
+   * These.swap(These.both(5, "warn"));     // Both("warn", 5)
    * ```
    */
   export const swap = <A, B>(data: These<A, B>): These<B, A> => {
@@ -265,20 +295,4 @@ export namespace These {
     if (isFirst(data)) return second(data.first);
     return both(data.second, data.first);
   };
-
-  /**
-   * Converts a These to an Option.
-   * First and Both produce Some; Second produces None.
-   *
-   * @example
-   * ```ts
-   * These.toOption(These.first(42));           // Some(42)
-   * These.toOption(These.both(42, "warn"));    // Some(42)
-   * These.toOption(These.second("warn"));      // None
-   * ```
-   */
-  export const toOption = <A, B>(
-    data: These<A, B>,
-  ): import("./Option.ts").Option<A> =>
-    hasFirst(data) ? { kind: "Some", value: data.first } : { kind: "None" };
 }

@@ -138,14 +138,14 @@ Deno.test("These.mapSecond passes through First unchanged", () => {
 });
 
 // ---------------------------------------------------------------------------
-// bimap
+// mapBoth
 // ---------------------------------------------------------------------------
 
-Deno.test("These.bimap maps the first side for First", () => {
+Deno.test("These.mapBoth maps the first side for First", () => {
   assertEquals(
     pipe(
       These.first(5),
-      These.bimap(
+      These.mapBoth(
         (n: number) => n * 2,
         (e: string) => e.toUpperCase(),
       ),
@@ -154,11 +154,11 @@ Deno.test("These.bimap maps the first side for First", () => {
   );
 });
 
-Deno.test("These.bimap maps the second side for Second", () => {
+Deno.test("These.mapBoth maps the second side for Second", () => {
   assertEquals(
     pipe(
       These.second("warn"),
-      These.bimap(
+      These.mapBoth(
         (n: number) => n * 2,
         (e: string) => e.toUpperCase(),
       ),
@@ -167,11 +167,11 @@ Deno.test("These.bimap maps the second side for Second", () => {
   );
 });
 
-Deno.test("These.bimap maps both sides for Both", () => {
+Deno.test("These.mapBoth maps both sides for Both", () => {
   assertEquals(
     pipe(
       These.both(5, "warn"),
-      These.bimap(
+      These.mapBoth(
         (n: number) => n * 2,
         (e: string) => e.toUpperCase(),
       ),
@@ -181,24 +181,24 @@ Deno.test("These.bimap maps both sides for Both", () => {
 });
 
 // ---------------------------------------------------------------------------
-// chain
+// chainFirst
 // ---------------------------------------------------------------------------
 
-Deno.test("These.chain applies function to First value", () => {
+Deno.test("These.chainFirst applies function to First value", () => {
   assertEquals(
     pipe(
       These.first(5),
-      These.chain((n: number) => These.first(n * 2)),
+      These.chainFirst((n: number) => These.first(n * 2)),
     ),
     { kind: "First", first: 10 },
   );
 });
 
-Deno.test("These.chain propagates Second without calling function", () => {
+Deno.test("These.chainFirst propagates Second without calling function", () => {
   let called = false;
   pipe(
     These.second<string>("warn"),
-    These.chain((_n: number) => {
+    These.chainFirst((_n: number) => {
       called = true;
       return These.first(_n);
     }),
@@ -206,36 +206,69 @@ Deno.test("These.chain propagates Second without calling function", () => {
   assertStrictEquals(called, false);
 });
 
-Deno.test(
-  "These.chain on Both applies function and preserves second when result is First",
-  () => {
-    assertEquals(
-      pipe(
-        These.both(5, "warn"),
-        These.chain((n: number) => These.first(n * 2)),
-      ),
-      { kind: "Both", first: 10, second: "warn" },
-    );
-  },
-);
-
-Deno.test("These.chain on Both passes through non-First result as-is", () => {
+Deno.test("These.chainFirst on Both applies function to first value", () => {
   assertEquals(
     pipe(
       These.both(5, "warn"),
-      These.chain((_n: number) => These.second<string>("new warn")),
+      These.chainFirst((n: number) => These.first(n * 2)),
     ),
-    { kind: "Second", second: "new warn" },
+    { kind: "First", first: 10 },
   );
 });
 
-Deno.test("These.chain can change the first value type", () => {
+Deno.test("These.chainFirst can change the first value type", () => {
   assertEquals(
     pipe(
       These.first(42),
-      These.chain((n: number) => These.first(`num: ${n}`)),
+      These.chainFirst((n: number) => These.first(`num: ${n}`)),
     ),
     { kind: "First", first: "num: 42" },
+  );
+});
+
+// ---------------------------------------------------------------------------
+// chainSecond
+// ---------------------------------------------------------------------------
+
+Deno.test("These.chainSecond applies function to Second value", () => {
+  assertEquals(
+    pipe(
+      These.second("warn"),
+      These.chainSecond((s: string) => These.second(s.toUpperCase())),
+    ),
+    { kind: "Second", second: "WARN" },
+  );
+});
+
+Deno.test("These.chainSecond propagates First without calling function", () => {
+  let called = false;
+  pipe(
+    These.first<number>(5),
+    These.chainSecond((_s: string) => {
+      called = true;
+      return These.second(_s);
+    }),
+  );
+  assertStrictEquals(called, false);
+});
+
+Deno.test("These.chainSecond on Both applies function to second value", () => {
+  assertEquals(
+    pipe(
+      These.both(5, "warn"),
+      These.chainSecond((s: string) => These.second(s.toUpperCase())),
+    ),
+    { kind: "Second", second: "WARN" },
+  );
+});
+
+Deno.test("These.chainSecond can change the second value type", () => {
+  assertEquals(
+    pipe(
+      These.second("warn"),
+      These.chainSecond((s: string) => These.second(s.length)),
+    ),
+    { kind: "Second", second: 4 },
   );
 });
 
@@ -332,19 +365,31 @@ Deno.test("These.match calls both handler for Both", () => {
 });
 
 // ---------------------------------------------------------------------------
-// getOrElse
+// getFirstOrElse / getSecondOrElse
 // ---------------------------------------------------------------------------
 
-Deno.test("These.getOrElse returns first value for First", () => {
-  assertStrictEquals(pipe(These.first(5), These.getOrElse(0)), 5);
+Deno.test("These.getFirstOrElse returns first value for First", () => {
+  assertStrictEquals(pipe(These.first(5), These.getFirstOrElse(0)), 5);
 });
 
-Deno.test("These.getOrElse returns first value for Both", () => {
-  assertStrictEquals(pipe(These.both(5, "w"), These.getOrElse(0)), 5);
+Deno.test("These.getFirstOrElse returns first value for Both", () => {
+  assertStrictEquals(pipe(These.both(5, "w"), These.getFirstOrElse(0)), 5);
 });
 
-Deno.test("These.getOrElse returns default for Second", () => {
-  assertStrictEquals(pipe(These.second<string>("warn"), These.getOrElse(0)), 0);
+Deno.test("These.getFirstOrElse returns default for Second", () => {
+  assertStrictEquals(pipe(These.second<string>("warn"), These.getFirstOrElse(0)), 0);
+});
+
+Deno.test("These.getSecondOrElse returns second value for Second", () => {
+  assertStrictEquals(pipe(These.second("warn"), These.getSecondOrElse("none")), "warn");
+});
+
+Deno.test("These.getSecondOrElse returns second value for Both", () => {
+  assertStrictEquals(pipe(These.both(5, "warn"), These.getSecondOrElse("none")), "warn");
+});
+
+Deno.test("These.getSecondOrElse returns default for First", () => {
+  assertStrictEquals(pipe(These.first<number>(5), These.getSecondOrElse("none")), "none");
 });
 
 // ---------------------------------------------------------------------------
@@ -407,22 +452,6 @@ Deno.test("These.swap swaps Both sides", () => {
 });
 
 // ---------------------------------------------------------------------------
-// toOption
-// ---------------------------------------------------------------------------
-
-Deno.test("These.toOption returns Some for First", () => {
-  assertEquals(These.toOption(These.first(42)), { kind: "Some", value: 42 });
-});
-
-Deno.test("These.toOption returns Some for Both", () => {
-  assertEquals(These.toOption(These.both(42, "w")), { kind: "Some", value: 42 });
-});
-
-Deno.test("These.toOption returns None for Second", () => {
-  assertEquals(These.toOption(These.second("e")), { kind: "None" });
-});
-
-// ---------------------------------------------------------------------------
 // pipe composition
 // ---------------------------------------------------------------------------
 
@@ -430,17 +459,17 @@ Deno.test("These composes well in a pipe chain", () => {
   const result = pipe(
     These.first(5),
     These.mapFirst((n: number) => n * 2),
-    These.chain((n: number) => n > 5 ? These.first(n) : These.second<string>("Too small")),
-    These.getOrElse(0),
+    These.chainFirst((n: number) => n > 5 ? These.first(n) : These.second<string>("Too small")),
+    These.getFirstOrElse(0),
   );
   assertStrictEquals(result, 10);
 });
 
-Deno.test("These pipe preserves second through chain on Both", () => {
+Deno.test("These chainFirst on Both discards second", () => {
   const result = pipe(
     These.both(5, "original warning"),
     These.mapFirst((n: number) => n + 1),
-    These.chain((n: number) => These.first(n * 2)),
+    These.chainFirst((n: number) => These.first(n * 2)),
   );
-  assertEquals(result, { kind: "Both", first: 12, second: "original warning" });
+  assertEquals(result, { kind: "First", first: 12 });
 });
