@@ -1,109 +1,104 @@
 ---
 title: These — inclusive OR
-description: Carry a warning alongside a successful result, or represent partial success with diagnostics.
+description: Hold a first value, a second value, or both simultaneously — without implying success or failure.
 ---
 
-Most operations produce one of two outcomes: a value or a failure. `These<E, A>` is for the cases
-that don't fit that model — when an operation partially succeeds, or succeeds but has something
-worth noting alongside the result. Where `Result<E, A>` is either an error _or_ a value,
-`These<E, A>` has three variants:
+Most operations produce one of two outcomes. `These<A, B>` is for the cases where both can exist
+at once. Where `Result<E, A>` is either an error _or_ a value, `These<A, B>` has three variants:
 
-- `Err(e)` — only an error, no value
-- `Ok(a)` — only a value, no error
-- `Both(e, a)` — an error _and_ a value simultaneously
+- `First(a)` — only a first value
+- `Second(b)` — only a second value
+- `Both(a, b)` — both a first and a second value simultaneously
 
-The `Both` case is what makes `These` distinct. It represents partial success: the operation
-produced a result, but there's also something worth noting — a warning, a degradation, a recovered
-fallback.
+Neither side carries a success or failure connotation. `These` is a neutral inclusive-OR pair:
+any combination is valid, and neither side is privileged.
 
-## When `Result` isn't enough
+## When two sides coexist
 
-`Result` is binary: you either succeed or fail. But some operations produce a meaningful result
-_and_ a diagnostic at the same time:
+Some operations naturally produce two pieces of information at once:
 
-- Parsing a number from a string with extra whitespace: the number is valid, but the input was
+- Parsing a number from a string with extra whitespace: the number is valid, and the input was
   malformed
 - A migration that completed with some rows skipped
-- An API response that returned data but also included deprecation warnings
-- A computation that succeeded using a fallback value when the primary source was unavailable
+- An API response that returned data and also included deprecation notices
+- A computation that succeeded using a fallback when the primary source was unavailable
 
-In these cases, returning `Err` discards the result. Returning `Ok` discards the warning. `Both`
-holds both.
+In these cases, discarding either piece loses information. `Both` holds them together.
 
 ## Creating These values
 
 ```ts
 import { These } from "@nlozgachev/pipekit/Core";
 
-These.ok(42); // Ok — success, no warning
-These.err("bad input"); // Err — failure, no value
-These.both("trimmed", 42); // Both — value with a warning attached
+These.first(42);            // First — only a first value
+These.second("bad input");  // Second — only a second value
+These.both(42, "trimmed");  // Both — first and second simultaneously
 ```
 
-A typical use: a parser that's lenient but reports what it fixed:
+A typical use: a parser that's lenient but records what it fixed:
 
 ```ts
 import { pipe } from "@nlozgachev/pipekit/Composition";
 
-const parseNumber = (s: string): These<string, number> => {
+const parseNumber = (s: string): These<number, string> => {
   const trimmed = s.trim();
   const n = parseFloat(trimmed);
-  if (isNaN(n)) return These.err("Not a number");
-  if (s !== trimmed) return These.both("Leading/trailing whitespace trimmed", n);
-  return These.ok(n);
+  if (isNaN(n)) return These.second("Not a number");
+  if (s !== trimmed) return These.both(n, "Leading/trailing whitespace trimmed");
+  return These.first(n);
 };
 
-parseNumber("  42  "); // Both("Leading/trailing whitespace trimmed", 42)
-parseNumber("42"); // Ok(42)
-parseNumber("abc"); // Err("Not a number")
+parseNumber("  42  "); // Both(42, "Leading/trailing whitespace trimmed")
+parseNumber("42");     // First(42)
+parseNumber("abc");    // Second("Not a number")
 ```
 
 ## Transforming values
 
-`map` transforms the value in `Ok` and `Both`, leaving `Err` untouched. In `Both`, the warning is
-preserved:
+`mapFirst` transforms the first value in `First` and `Both`, leaving `Second` untouched. In
+`Both`, the second value is preserved:
 
 ```ts
-pipe(These.ok(5), These.map((n) => n * 2)); // Ok(10)
-pipe(These.both("warn", 5), These.map((n) => n * 2)); // Both("warn", 10)
-pipe(These.err("err"), These.map((n) => n * 2)); // Err("err")
+pipe(These.first(5), These.mapFirst((n) => n * 2));           // First(10)
+pipe(These.both(5, "warn"), These.mapFirst((n) => n * 2));    // Both(10, "warn")
+pipe(These.second("warn"), These.mapFirst((n) => n * 2));     // Second("warn")
 ```
 
-`mapErr` transforms the error/warning in `Err` and `Both`, leaving `Ok` untouched:
+`mapSecond` transforms the second value in `Second` and `Both`, leaving `First` untouched:
 
 ```ts
-pipe(These.err("warn"), These.mapErr((e) => e.toUpperCase())); // Err("WARN")
-pipe(These.both("warn", 5), These.mapErr((e) => e.toUpperCase())); // Both("WARN", 5)
+pipe(These.second("warn"), These.mapSecond((e) => e.toUpperCase())); // Second("WARN")
+pipe(These.both(5, "warn"), These.mapSecond((e) => e.toUpperCase())); // Both(5, "WARN")
 ```
 
 `bimap` transforms both sides at once:
 
 ```ts
 pipe(
-  These.both("warn", 5),
+  These.both(5, "warn"),
   These.bimap(
-    (e) => e.toUpperCase(),
     (n) => n * 2,
+    (e) => e.toUpperCase(),
   ),
-); // Both("WARN", 10)
+); // Both(10, "WARN")
 ```
 
 ## Chaining
 
-`chain` passes the value to the next step. The key behaviour is in the `Both` case: if the current
-state is `Both(e, a)` and the next step returns `Ok(b)`, the warning `e` is preserved in a
-`Both(e, b)`. The warning travels forward:
+`chain` passes the first value to the next step. The key behaviour is in the `Both` case: if the
+current state is `Both(a, b)` and the next step returns `First(c)`, the second value `b` is
+preserved in a `Both(c, b)`. The second value travels forward:
 
 ```ts
-const double = (n: number): These<string, number> => These.ok(n * 2);
+const double = (n: number): These<number, string> => These.first(n * 2);
 
-pipe(These.ok(5), These.chain(double)); // Ok(10)
-pipe(These.both("warn", 5), These.chain(double)); // Both("warn", 10) — warning preserved
-pipe(These.err("err"), These.chain(double)); // Err("err")
+pipe(These.first(5), These.chain(double));            // First(10)
+pipe(These.both(5, "warn"), These.chain(double));     // Both(10, "warn") — second preserved
+pipe(These.second("warn"), These.chain(double));      // Second("warn")
 ```
 
-If the next step itself returns `Both` or `Err`, that result takes precedence and the original
-warning from `Both` is dropped.
+If the next step itself returns `Both` or `Second`, that result is returned as-is and the
+original second value from `Both` is dropped.
 
 ## Extracting the value
 
@@ -113,9 +108,9 @@ warning from `Both` is dropped.
 pipe(
   result,
   These.match({
-    ok: (value) => `Success: ${value}`,
-    err: (error) => `Failed: ${error}`,
-    both: (error, value) => `Success with warning — ${error}: ${value}`,
+    first: (value) => `First: ${value}`,
+    second: (note) => `Second: ${note}`,
+    both: (value, note) => `Both — ${note}: ${value}`,
   }),
 );
 ```
@@ -126,19 +121,19 @@ pipe(
 pipe(
   result,
   These.fold(
-    (error) => `Failed: ${error}`,
-    (value) => `Success: ${value}`,
-    (error, value) => `Partial: ${error}: ${value}`,
+    (value) => `First: ${value}`,
+    (note) => `Second: ${note}`,
+    (value, note) => `Both: ${value} / ${note}`,
   ),
 );
 ```
 
-**`getOrElse`** — returns the value from `Ok` or `Both`, or a fallback for `Err`:
+**`getOrElse`** — returns the first value from `First` or `Both`, or a fallback for `Second`:
 
 ```ts
-pipe(These.ok(5), These.getOrElse(0)); // 5
-pipe(These.both("warn", 5), These.getOrElse(0)); // 5
-pipe(These.err("err"), These.getOrElse(0)); // 0
+pipe(These.first(5), These.getOrElse(0));            // 5
+pipe(These.both(5, "warn"), These.getOrElse(0));     // 5
+pipe(These.second("warn"), These.getOrElse(0));      // 0
 ```
 
 ## Type guards
@@ -146,56 +141,43 @@ pipe(These.err("err"), These.getOrElse(0)); // 0
 For checking the variant directly:
 
 ```ts
-These.isOk(t); // true if Ok only
-These.isErr(t); // true if Err only
-These.isBoth(t); // true if Both
+These.isFirst(t);   // true if First only
+These.isSecond(t);  // true if Second only
+These.isBoth(t);    // true if Both
 
-These.hasValue(t); // true if Ok or Both — value is present
-These.hasError(t); // true if Err or Both — error is present
+These.hasFirst(t);  // true if First or Both — first value is present
+These.hasSecond(t); // true if Second or Both — second value is present
 ```
 
-`hasValue` and `hasError` are useful when you care about the presence of each side independently,
-without needing to distinguish the exact variant.
+`hasFirst` and `hasSecond` are useful when you care about the presence of each side
+independently, without needing to distinguish the exact variant.
 
-## Converting to other types
+## Converting to Option
 
-**`toResult`** — converts to `Result`, discarding any warning from `Both`:
+**`toOption`** — keeps only the first value side:
 
 ```ts
-These.toResult(These.ok(42)); // Ok(42)
-These.toResult(These.both("warn", 42)); // Ok(42) — warning dropped
-These.toResult(These.err("err")); // Err("err")
+These.toOption(These.first(42));           // Some(42)
+These.toOption(These.both(42, "warn"));    // Some(42)
+These.toOption(These.second("warn"));      // None
 ```
 
-**`toOption`** — keeps only the value side:
+**`swap`** — flips first and second roles:
 
 ```ts
-These.toOption(These.ok(42)); // Some(42)
-These.toOption(These.both("warn", 42)); // Some(42)
-These.toOption(These.err("err")); // None
+These.swap(These.second("warn")); // First("warn")
+These.swap(These.first(5));       // Second(5)
+These.swap(These.both(5, "warn")); // Both("warn", 5)
 ```
 
-**`swap`** — flips error and value roles:
-
-```ts
-These.swap(These.err("err")); // Ok("err")
-These.swap(These.ok(5)); // Err(5)
-These.swap(These.both("warn", 5)); // Both(5, "warn")
-```
-
-## When to use These vs Result
+## When to use These
 
 Use `These` when:
 
-- An operation can succeed _and_ produce a diagnostic simultaneously
-- You need to propagate warnings through a pipeline without losing the result
-- You're building lenient parsers or processors that collect notices alongside output
-
-Use `Result` when:
-
-- An operation either succeeds or fails — there's no meaningful "partial" state
-- You don't need to carry diagnostics alongside successful values
+- An operation can produce two pieces of information simultaneously
+- You need to propagate a secondary note through a pipeline without losing the primary result
+- You're building lenient parsers or processors that collect diagnostics alongside output
 
 `These` is the less commonly reached-for type in the family. When you find yourself wanting to
-attach metadata, notes, or warnings to a successful result rather than just returning the result
-alone, that's the signal to reach for it.
+carry two independent pieces of data — where either or both may be present — that's the signal
+to reach for it.
