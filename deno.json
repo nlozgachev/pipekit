@@ -1,6 +1,6 @@
 {
   "name": "@nlozgachev/pipekit",
-  "version": "0.1.8",
+  "version": "0.2.0",
   "exports": {
     "./Composition": "./src/Composition/index.ts",
     "./Core": "./src/Core/index.ts",
