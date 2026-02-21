@@ -12,10 +12,11 @@ Promises have two quirks that make them hard to compose.
 **Promises are eager.** A Promise starts the moment it's created:
 
 ```ts
-const p = fetch("/api/user"); // network request starts immediately
+const p = new Promise<void>((resolve) => setTimeout(resolve, 5000));
+// the 5-second countdown is already running
 ```
 
-You can't build a pipeline of async steps and pass it around before any work begins — by the time you have the Promise in hand, it's already in flight.
+You can't build a pipeline of async steps and pass it around before any work begins — by the time you have the Promise in hand, the work is already underway.
 
 **Promises can reject.** Failure leaks out as an untyped exception rather than as a typed value. This forces `try/catch` at every call site and makes it impossible to tell from a function's return type whether it can fail.
 
