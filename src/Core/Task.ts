@@ -1,22 +1,25 @@
 import { Result } from "./Result.ts";
 
 /**
- * Task represents a lazy asynchronous computation.
- * Unlike Promise, a Task doesn't execute until you call it.
- * This makes Tasks composable and referentially transparent.
+ * A lazy async computation that always resolves.
+ *
+ * Two guarantees:
+ * - **Lazy** — nothing starts until you call it.
+ * - **Infallible** — it never rejects. If failure is possible, encode it in the
+ *   return type using `TaskResult<E, A>` instead.
  *
  * @example
  * ```ts
- * const fetchData: Task<Data> = () => fetch('/api/data').then(r => r.json());
+ * const getTimestamp: Task<number> = () => Promise.resolve(Date.now());
  *
- * // Nothing happens yet - the task is just defined
- * const processedData = pipe(
- *   fetchData,
- *   Task.map(data => transform(data))
+ * // Nothing runs yet — getTimestamp is just a description
+ * const formatted = pipe(
+ *   getTimestamp,
+ *   Task.map(ts => new Date(ts).toISOString())
  * );
  *
- * // Now execute the task
- * processedData().then(result => console.log(result));
+ * // Execute when ready
+ * const result = await formatted();
  * ```
  */
 export type Task<A> = () => Promise<A>;
@@ -39,7 +42,7 @@ export namespace Task {
    *
    * @example
    * ```ts
-   * const fetchUser = Task.from(() => fetch('/user').then(r => r.json()));
+   * const getTimestamp = Task.from(() => Promise.resolve(Date.now()));
    * ```
    */
   export const from = <A>(f: () => Promise<A>): Task<A> => f;
@@ -62,13 +65,13 @@ export namespace Task {
    *
    * @example
    * ```ts
-   * const fetchUser = (id: string): Task<User> => () => fetch(`/users/${id}`).then(r => r.json());
-   * const fetchPosts = (user: User): Task<Post[]> => () => fetch(`/posts?userId=${user.id}`).then(r => r.json());
+   * const readUserId: Task<string> = () => Promise.resolve(session.userId);
+   * const loadPrefs = (id: string): Task<Preferences> => () => Promise.resolve(prefsCache.get(id));
    *
    * pipe(
-   *   fetchUser("123"),
-   *   Task.chain(fetchPosts)
-   * )(); // Promise<Post[]>
+   *   readUserId,
+   *   Task.chain(loadPrefs)
+   * )(); // Promise<Preferences>
    * ```
    */
   export const chain = <A, B>(f: (a: A) => Task<B>) => (data: Task<A>): Task<B> => () =>
@@ -98,9 +101,9 @@ export namespace Task {
    * @example
    * ```ts
    * pipe(
-   *   fetchData,
-   *   Task.tap(data => console.log("Fetched:", data)),
-   *   Task.map(transform)
+   *   loadConfig,
+   *   Task.tap(cfg => console.log("Config:", cfg)),
+   *   Task.map(buildReport)
    * );
    * ```
    */
@@ -115,8 +118,8 @@ export namespace Task {
    *
    * @example
    * ```ts
-   * Task.all([fetchUser, fetchPosts, fetchComments])();
-   * // Promise<[User, Post[], Comment[]]>
+   * Task.all([loadConfig, detectLocale, loadTheme])();
+   * // Promise<[Config, string, Theme]>
    * ```
    */
   export const all = <T extends readonly Task<unknown>[]>(
@@ -206,9 +209,9 @@ export namespace Task {
    * @example
    * ```ts
    * pipe(
-   *   fetchUser,
-   *   Task.timeout(5000, () => new TimeoutError("fetch user timed out")),
-   *   TaskResult.chain(processUser)
+   *   heavyComputation,
+   *   Task.timeout(5000, () => "timed out"),
+   *   TaskResult.chain(processResult)
    * );
    * ```
    */

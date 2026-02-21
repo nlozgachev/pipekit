@@ -1,19 +1,23 @@
 ---
 title: Task — async operations
-description: Lazy async computations that don't start until you say so, and compose like any other function.
+description: Lazy, infallible async computations — they don't start until called, and they never reject.
 ---
 
-Promises are excellent at representing async work, but they have a quirk that's easy to overlook: a Promise is already running the moment you create it. You can't hold one, decide when to start it, or compose it with another one before any work begins. `Task<A>` is a function that returns a `Promise<A>`. The work doesn't start until you call it — which makes Tasks composable, testable, and easy to reason about before they run.
+`Task<A>` is an async computation with two guarantees: it is **lazy** (nothing runs until you call it) and **infallible** (it always resolves — it never rejects). When failure is possible, that failure is encoded in the return type using `TaskResult<E, A>` rather than leaking out as a rejected Promise.
 
-## The problem with Promises
+## The problems with Promises
 
-A `Promise` starts the moment it's created:
+Promises have two quirks that make them hard to compose.
+
+**Promises are eager.** A Promise starts the moment it's created:
 
 ```ts
 const p = fetch("/api/user"); // network request starts immediately
 ```
 
-This makes it hard to describe what an operation should do without also starting it. You can't build a pipeline of async steps and pass it around or delay it — by the time you have the Promise in hand, it's already in flight.
+You can't build a pipeline of async steps and pass it around before any work begins — by the time you have the Promise in hand, it's already in flight.
+
+**Promises can reject.** Failure leaks out as an untyped exception rather than as a typed value. This forces `try/catch` at every call site and makes it impossible to tell from a function's return type whether it can fail.
 
 ## The Task approach
 
@@ -23,24 +27,24 @@ A `Task<A>` is just a zero-argument function returning a `Promise<A>`:
 type Task<A> = () => Promise<A>
 ```
 
-The key difference: nothing happens until you call it.
+This addresses both problems. The function wrapper makes it lazy — nothing runs until you call it. And by treating Tasks as always-succeeding computations, failure is pushed into the type: `TaskResult<E, A>` is `Task<Result<E, A>>`, so it's impossible to overlook.
 
 ```ts
 import { Task } from "@nlozgachev/pipekit/Core";
 import { pipe } from "@nlozgachev/pipekit/Composition";
 
-const fetchUser: Task<User> = () => fetch("/api/user").then((r) => r.json());
+const getTimestamp: Task<number> = () => Promise.resolve(Date.now());
 
-// Nothing has happened yet. fetchUser is just a function.
+// Nothing has happened yet. getTimestamp is just a function.
 
 const pipeline = pipe(
-  fetchUser,
-  Task.map((user) => user.name),
+  getTimestamp,
+  Task.map((ts) => new Date(ts).toISOString()),
 );
 
 // Still nothing. pipeline is a new Task<string>.
 
-const result = await pipeline(); // NOW the request runs
+const result = await pipeline(); // NOW it runs
 ```
 
 The pipeline is built first, then executed once by calling it. You can pass it around, compose it further, or call it multiple times.
@@ -48,16 +52,14 @@ The pipeline is built first, then executed once by calling it. You can pass it a
 ## Creating Tasks
 
 ```ts
-Task.of(42);               // Task that resolves to 42 immediately
-Task.from(() => fetchData()); // Task from any Promise-returning function
+Task.of(42);                                  // Task that resolves to 42 immediately
+Task.from(() => Promise.resolve(Date.now())); // Task from any Promise-returning function
 ```
 
 `Task.from` is an explicit alias for writing `() => somePromise()`. It's mainly useful for clarity:
 
 ```ts
-const getUsers: Task<User[]> = Task.from(() =>
-  fetch("/users").then((r) => r.json())
-);
+const getTimestamp: Task<number> = Task.from(() => Promise.resolve(Date.now()));
 ```
 
 ## Transforming with `map`
@@ -78,18 +80,18 @@ Chaining maps builds a description of the transformation; the actual async work 
 `chain` sequences two async operations where the second depends on the result of the first:
 
 ```ts
-const fetchUser = (id: string): Task<User> =>
-  Task.from(() => fetch(`/users/${id}`).then((r) => r.json()));
+const readUserId: Task<string> =
+  () => Promise.resolve(session.userId);
 
-const fetchPosts = (user: User): Task<Post[]> =>
-  Task.from(() => fetch(`/posts?userId=${user.id}`).then((r) => r.json()));
+const loadPreferences = (userId: string): Task<Preferences> =>
+  () => Promise.resolve(prefsCache.get(userId));
 
-const userPosts: Task<Post[]> = pipe(
-  fetchUser("123"),
-  Task.chain(fetchPosts),
+const userPrefs: Task<Preferences> = pipe(
+  readUserId,
+  Task.chain(loadPreferences),
 );
 
-await userPosts(); // fetches user, then fetches their posts
+await userPrefs(); // reads user ID, then loads their preferences
 ```
 
 Each step waits for the previous one to resolve before starting.
@@ -99,14 +101,14 @@ Each step waits for the previous one to resolve before starting.
 `Task.all` takes an array of Tasks and runs them simultaneously, collecting all results:
 
 ```ts
-const [user, settings, notifications] = await Task.all([
-  fetchUser(id),
-  fetchSettings(id),
-  fetchNotifications(id),
+const [config, locale, theme] = await Task.all([
+  loadConfig(),
+  detectLocale(),
+  loadTheme(userId),
 ])();
 ```
 
-The return type is inferred from the input tuple — if you pass `[Task<User>, Task<Settings>]`, you get back `Task<[User, Settings]>`.
+The return type is inferred from the input tuple — if you pass `[Task<Config>, Task<string>]`, you get back `Task<[Config, string]>`.
 
 ## Delaying execution
 
