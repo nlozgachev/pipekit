@@ -4,6 +4,8 @@
 
 A TypeScript toolkit for writing code that means exactly what it says.
 
+> **Note:** pipekit is pre-1.0. The API may change between minor versions until the 1.0 release.
+
 ```sh
 # npm / pnpm / yarn / bun
 npm add @nlozgachev/pipekit
@@ -36,6 +38,10 @@ No FP jargon required. You won't find `Monad`, `Functor`, or `Applicative` in th
 - **`These<E, A>`** — an inclusive OR: holds an error, a value, or both at once.
 - **`RemoteData<E, A>`** — the four states of a data fetch: `NotAsked`, `Loading`, `Failure`,
   `Success`.
+- **`Lens<S, A>`** — focus on a required field in a nested structure. Read, set, and modify
+  immutably.
+- **`Optional<S, A>`** — like `Lens`, but the target may be absent (nullable fields, array indices).
+- **`Reader<R, A>`** — a computation that depends on an environment `R`, resolved later.
 - **`Arr`** — array utilities that return `Option` instead of `undefined`.
 - **`Rec`** — record/object utilities.
 
