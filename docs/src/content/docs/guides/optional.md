@@ -1,5 +1,5 @@
 ---
-title: Optional — optional focus
+title: Optional — nullable paths
 description: Follow a path into your data that might not lead anywhere — optional fields, array elements, and other values that may be absent.
 ---
 

@@ -1,5 +1,5 @@
 ---
-title: Task — async operations
+title: Task — lazy async
 description: Lazy, infallible async computations — they don't start until called, and they never reject.
 ---
 

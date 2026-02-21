@@ -43,17 +43,14 @@ failure are practical, not academic.
 
 ### fp-ts
 
-The most direct TypeScript ancestor is [fp-ts](https://gcanti.github.io/fp-ts/) by Giulio Canti.
-fp-ts is a comprehensive, rigorous encoding of functional programming in TypeScript: it covers every
-major typeclass, uses `pipe` as its composition primitive, and follows the data-last convention
-throughout.
+The most direct TypeScript ancestor is fp-ts by Giulio Canti — a comprehensive, rigorous encoding
+of functional programming in TypeScript that covered every major typeclass, used `pipe` as its
+composition primitive, and followed the data-last convention throughout. fp-ts is no longer actively developed — its author joined the [Effect](https://effect.website/)
+organisation, and that's now where new development in this space happens.
 
 This library borrows several things from fp-ts directly: the `pipe` and `flow` functions, the
 data-last convention, and the pattern of defining each type as a TypeScript type alias alongside a
-namespace of functions with the same name. The key differences are scope and vocabulary. fp-ts
-covers far more ground, uses precise typeclass names (`Functor`, `Monad`, `Applicative`), and is
-designed for users who are already familiar with functional programming. This library covers a
-smaller surface area and uses names that describe behaviour rather than algebraic structure.
+namespace of functions with the same name.
 
 ### Optics
 
@@ -237,9 +234,9 @@ can call `errors[0]` or `errors.join(", ")` without defensive checks.
 ## What was deliberately left out
 
 **Typeclass names.** The library contains implementations of what Haskell calls `Functor` (`map`),
-`Monad` (`chain`), and `Applicative` (`ap`). These names don't appear in the API because they convey
-structure to people who already know what they mean, and nothing to people who don't. `map` says
-what it does; `fmap` says what it is. The first is more useful at a glance.
+`Monad` (`chain`), and `Applicative` (`ap`). These names don't appear in the API — the operations
+use names that describe what they do rather than the algebraic structure they belong to. The
+reasoning behind this is in [Why this exists](/motivation).
 
 **A typeclass system.** fp-ts uses a `HKT` encoding to simulate higher-kinded types in TypeScript,
 which allows generic code over any type that implements a given typeclass. This library makes no

@@ -1,5 +1,5 @@
 ---
-title: Brand — nominal types
+title: Brand — distinguishing values
 description: Make the type system distinguish values that share the same underlying type.
 ---
 
