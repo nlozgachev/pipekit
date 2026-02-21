@@ -1,0 +1,8 @@
+@layer starlight, nova, custom-styles;
+
+@layer custom-styles {
+  main ul > li {
+    list-style-type: square;
+    list-style-position: inside;
+  }
+}
