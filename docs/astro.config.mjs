@@ -12,7 +12,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "@nlozgachev/pipekit",
-      favicon: "public/favicon.svg",
+      favicon: "favicon.svg",
       customCss: ["./src/styles/custom.css"],
       social: [
         {
