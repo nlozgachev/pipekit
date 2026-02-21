@@ -13,7 +13,7 @@ A `Promise` starts the moment it's created:
 const p = fetch("/api/user"); // network request starts immediately
 ```
 
-This makes it hard to describe what an operation should do without also starting it. You can't build a pipeline of async steps and pass it around, delay it, or retry it — by the time you have the Promise in hand, it's already in flight.
+This makes it hard to describe what an operation should do without also starting it. You can't build a pipeline of async steps and pass it around or delay it — by the time you have the Promise in hand, it's already in flight.
 
 ## The Task approach
 
@@ -119,7 +119,31 @@ pipe(
 )(); // resolves to "ping" after 1 second
 ```
 
-Useful for debouncing, rate limiting, or implementing retry backoff.
+Useful for debouncing or rate limiting.
+
+## Repeating Tasks
+
+Unlike retry — which re-runs a computation in response to failure — `repeat` and `repeatUntil` run a Task multiple times unconditionally. This fits naturally with Task's guarantee that it never fails.
+
+`Task.repeat` runs a Task a fixed number of times and collects every result:
+
+```ts
+pipe(
+  pollSensor,
+  Task.repeat({ times: 5, delay: 1000 }),
+)(); // Task<Reading[]> — 5 readings, one per second
+```
+
+`Task.repeatUntil` keeps running until the result satisfies a predicate, then returns it. This is the natural shape for polling:
+
+```ts
+pipe(
+  checkDeploymentStatus,
+  Task.repeatUntil({ when: (s) => s === "ready", delay: 2000 }),
+)(); // checks every 2s until the deployment is ready
+```
+
+Both accept an optional `delay` (in ms) inserted between runs. The delay is not applied after the final run.
 
 ## The Task family
 

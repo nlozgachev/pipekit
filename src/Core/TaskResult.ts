@@ -103,4 +103,76 @@ export namespace TaskResult {
    */
   export const tap = <E, A>(f: (a: A) => void) => (data: TaskResult<E, A>): TaskResult<E, A> =>
     Task.map(Result.tap<E, A>(f))(data);
+
+  /**
+   * Re-runs a TaskResult on `Err` with configurable attempts, backoff, and retry condition.
+   *
+   * @param options.attempts - Total number of attempts (1 = no retry, 3 = up to 3 tries)
+   * @param options.backoff - Fixed delay in ms, or a function `(attempt) => ms` for computed delay
+   * @param options.when - Only retry when this returns true; defaults to always retry on Err
+   *
+   * @example
+   * ```ts
+   * // Retry up to 3 times with exponential backoff
+   * pipe(
+   *   fetchUser,
+   *   TaskResult.retry({ attempts: 3, backoff: n => n * 1000 })
+   * );
+   *
+   * // Only retry on network errors, not auth errors
+   * pipe(
+   *   fetchUser,
+   *   TaskResult.retry({ attempts: 3, when: e => e instanceof NetworkError })
+   * );
+   * ```
+   */
+  export const retry =
+    <E>(options: {
+      attempts: number;
+      backoff?: number | ((attempt: number) => number);
+      when?: (error: E) => boolean;
+    }) =>
+    <A>(data: TaskResult<E, A>): TaskResult<E, A> =>
+    () => {
+      const { attempts, backoff, when: shouldRetry } = options;
+      const getDelay = (n: number): number =>
+        backoff === undefined ? 0 : typeof backoff === "function" ? backoff(n) : backoff;
+
+      const run = (left: number): Promise<Result<E, A>> =>
+        data().then((result) => {
+          if (Result.isOk(result)) return result;
+          if (left <= 1) return result;
+          if (shouldRetry !== undefined && !shouldRetry(result.error)) return result;
+          const ms = getDelay(attempts - left + 1);
+          return (ms > 0 ? new Promise<void>((r) => setTimeout(r, ms)) : Promise.resolve()).then(
+            () => run(left - 1),
+          );
+        });
+
+      return run(attempts);
+    };
+
+  /**
+   * Fails a TaskResult with a typed error if it does not resolve within the given time.
+   *
+   * @example
+   * ```ts
+   * pipe(
+   *   fetchUser,
+   *   TaskResult.timeout(5000, () => new TimeoutError("fetch user timed out"))
+   * );
+   * ```
+   */
+  export const timeout =
+    <E>(ms: number, onTimeout: () => E) =>
+    <A>(data: TaskResult<E, A>): TaskResult<E, A> =>
+    () => {
+      let timerId: ReturnType<typeof setTimeout>;
+      return Promise.race([
+        data().then((result) => { clearTimeout(timerId); return result; }),
+        new Promise<Result<E, A>>((resolve) => {
+          timerId = setTimeout(() => resolve(Result.toErr(onTimeout())), ms);
+        }),
+      ]);
+    };
 }

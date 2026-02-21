@@ -1,3 +1,5 @@
+import { Result } from "./Result.ts";
+
 /**
  * Task represents a lazy asynchronous computation.
  * Unlike Promise, a Task doesn't execute until you call it.
@@ -32,11 +34,6 @@ export namespace Task {
   export const of = <A>(value: A): Task<A> => () => Promise.resolve(value);
 
   /**
-   * Creates a Task that will reject with the given error.
-   */
-  export const fail = <A>(error: unknown): Task<A> => () => Promise.reject(error);
-
-  /**
    * Creates a Task from a function that returns a Promise.
    * Alias for directly creating a Task.
    *
@@ -61,7 +58,7 @@ export namespace Task {
   export const map = <A, B>(f: (a: A) => B) => (data: Task<A>): Task<B> => () => data().then(f);
 
   /**
-   * Chains Task computations. If the first succeeds, passes the value to f.
+   * Chains Task computations. Passes the resolved value of the first Task to f.
    *
    * @example
    * ```ts
@@ -132,6 +129,7 @@ export namespace Task {
 
   /**
    * Delays the execution of a Task by the specified milliseconds.
+   * Useful for debouncing or rate limiting.
    *
    * @example
    * ```ts
@@ -143,4 +141,87 @@ export namespace Task {
    */
   export const delay = (ms: number) => <A>(data: Task<A>): Task<A> => () =>
     new Promise((resolve, reject) => setTimeout(() => data().then(resolve, reject), ms));
+
+  /**
+   * Runs a Task a fixed number of times sequentially, collecting all results into an array.
+   * An optional delay (ms) can be inserted between runs.
+   *
+   * @example
+   * ```ts
+   * pipe(
+   *   pollSensor,
+   *   Task.repeat({ times: 5, delay: 1000 })
+   * )(); // Task<Reading[]> — 5 readings, one per second
+   * ```
+   */
+  export const repeat =
+    (options: { times: number; delay?: number }) =>
+    <A>(task: Task<A>): Task<A[]> =>
+    () => {
+      const { times, delay: ms } = options;
+      if (times <= 0) return Promise.resolve([]);
+      const results: A[] = [];
+      const wait = (): Promise<void> =>
+        ms !== undefined && ms > 0 ? new Promise((r) => setTimeout(r, ms)) : Promise.resolve();
+      const run = (left: number): Promise<A[]> =>
+        task().then((a) => {
+          results.push(a);
+          if (left <= 1) return results;
+          return wait().then(() => run(left - 1));
+        });
+      return run(times);
+    };
+
+  /**
+   * Runs a Task repeatedly until the result satisfies a predicate, returning that result.
+   * An optional delay (ms) can be inserted between runs.
+   *
+   * @example
+   * ```ts
+   * pipe(
+   *   checkStatus,
+   *   Task.repeatUntil({ when: (s) => s === "ready", delay: 500 })
+   * )(); // polls every 500ms until status is "ready"
+   * ```
+   */
+  export const repeatUntil =
+    <A>(options: { when: (a: A) => boolean; delay?: number }) =>
+    (task: Task<A>): Task<A> =>
+    () => {
+      const { when: predicate, delay: ms } = options;
+      const wait = (): Promise<void> =>
+        ms !== undefined && ms > 0 ? new Promise((r) => setTimeout(r, ms)) : Promise.resolve();
+      const run = (): Promise<A> =>
+        task().then((a) => {
+          if (predicate(a)) return a;
+          return wait().then(run);
+        });
+      return run();
+    };
+
+  /**
+   * Converts a `Task<A>` into a `Task<Result<E, A>>`, resolving to `Err` if the
+   * Task does not complete within the given time.
+   *
+   * @example
+   * ```ts
+   * pipe(
+   *   fetchUser,
+   *   Task.timeout(5000, () => new TimeoutError("fetch user timed out")),
+   *   TaskResult.chain(processUser)
+   * );
+   * ```
+   */
+  export const timeout =
+    <E>(ms: number, onTimeout: () => E) =>
+    <A>(task: Task<A>): Task<Result<E, A>> =>
+    () => {
+      let timerId: ReturnType<typeof setTimeout>;
+      return Promise.race([
+        task().then((a): Result<E, A> => { clearTimeout(timerId); return Result.toOk(a); }),
+        new Promise<Result<E, A>>((resolve) => {
+          timerId = setTimeout(() => resolve(Result.toErr(onTimeout())), ms);
+        }),
+      ]);
+    };
 }

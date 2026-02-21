@@ -334,3 +334,126 @@ Deno.test("TaskResult tryCatch integrates with pipe chain", async () => {
   )();
   assertStrictEquals(result, 50);
 });
+
+
+// ---------------------------------------------------------------------------
+// retry
+// ---------------------------------------------------------------------------
+
+Deno.test("TaskResult.retry returns Ok without retrying", async () => {
+  let calls = 0;
+  const task: TaskResult<string, number> = () => { calls++; return TaskResult.of<string, number>(42)(); };
+  const result = await pipe(task, TaskResult.retry({ attempts: 3 }))();
+  assertEquals(result, { kind: "Ok", value: 42 });
+  assertStrictEquals(calls, 1);
+});
+
+Deno.test("TaskResult.retry retries on Err and returns Ok on eventual success", async () => {
+  let calls = 0;
+  const task: TaskResult<string, number> = () => {
+    calls++;
+    return calls < 3
+      ? TaskResult.fail<string, number>("fail")()
+      : TaskResult.of<string, number>(42)();
+  };
+  const result = await pipe(task, TaskResult.retry({ attempts: 3 }))();
+  assertEquals(result, { kind: "Ok", value: 42 });
+  assertStrictEquals(calls, 3);
+});
+
+Deno.test("TaskResult.retry returns last Err after exhausting all attempts", async () => {
+  let calls = 0;
+  const task: TaskResult<string, number> = () => { calls++; return TaskResult.fail<string, number>("boom")(); };
+  const result = await pipe(task, TaskResult.retry({ attempts: 3 }))();
+  assertEquals(result, { kind: "Error", error: "boom" });
+  assertStrictEquals(calls, 3);
+});
+
+Deno.test("TaskResult.retry with attempts: 1 does not retry", async () => {
+  let calls = 0;
+  const task: TaskResult<string, number> = () => { calls++; return TaskResult.fail<string, number>("boom")(); };
+  const result = await pipe(task, TaskResult.retry({ attempts: 1 }))();
+  assertEquals(result, { kind: "Error", error: "boom" });
+  assertStrictEquals(calls, 1);
+});
+
+Deno.test("TaskResult.retry when predicate stops retry on non-matching error", async () => {
+  let calls = 0;
+  const task: TaskResult<string, number> = () => { calls++; return TaskResult.fail<string, number>("auth-error")(); };
+  const result = await pipe(
+    task,
+    TaskResult.retry({ attempts: 3, when: (e) => e !== "auth-error" }),
+  )();
+  assertEquals(result, { kind: "Error", error: "auth-error" });
+  assertStrictEquals(calls, 1);
+});
+
+Deno.test("TaskResult.retry when predicate allows retry on matching error", async () => {
+  let calls = 0;
+  const task: TaskResult<string, number> = () => {
+    calls++;
+    return calls < 3
+      ? TaskResult.fail<string, number>("network-error")()
+      : TaskResult.of<string, number>(42)();
+  };
+  const result = await pipe(
+    task,
+    TaskResult.retry({ attempts: 3, when: (e) => e === "network-error" }),
+  )();
+  assertEquals(result, { kind: "Ok", value: 42 });
+  assertStrictEquals(calls, 3);
+});
+
+Deno.test("TaskResult.retry calls backoff function with retry attempt number", async () => {
+  const recorded: number[] = [];
+  const task: TaskResult<string, number> = () => TaskResult.fail<string, number>("fail")();
+  await pipe(
+    task,
+    TaskResult.retry({ attempts: 3, backoff: (n) => { recorded.push(n); return 0; } }),
+  )();
+  assertEquals(recorded, [1, 2]);
+});
+
+// ---------------------------------------------------------------------------
+// timeout
+// ---------------------------------------------------------------------------
+
+Deno.test("TaskResult.timeout returns Ok when task resolves before timeout", async () => {
+  const result = await pipe(
+    TaskResult.of<string, number>(42),
+    TaskResult.timeout(100, () => "timed out"),
+  )();
+  assertEquals(result, { kind: "Ok", value: 42 });
+});
+
+Deno.test({
+  name: "TaskResult.timeout returns Err when task exceeds timeout",
+  sanitizeOps: false,
+  sanitizeResources: false,
+  fn: async () => {
+    const slow: TaskResult<string, number> = () =>
+      new Promise((r) => setTimeout(() => r({ kind: "Ok", value: 42 }), 200));
+    const result = await pipe(slow, TaskResult.timeout(10, () => "timed out"))();
+    assertEquals(result, { kind: "Error", error: "timed out" });
+  },
+});
+
+Deno.test("TaskResult.timeout passes Err through if task resolves to Err before timeout", async () => {
+  const result = await pipe(
+    TaskResult.fail<string, number>("original error"),
+    TaskResult.timeout(100, () => "timed out"),
+  )();
+  assertEquals(result, { kind: "Error", error: "original error" });
+});
+
+Deno.test({
+  name: "TaskResult.timeout uses the onTimeout return value as the error",
+  sanitizeOps: false,
+  sanitizeResources: false,
+  fn: async () => {
+    const slow: TaskResult<string, number> = () =>
+      new Promise((r) => setTimeout(() => r({ kind: "Ok", value: 42 }), 200));
+    const result = await pipe(slow, TaskResult.timeout(10, () => "request timed out"))();
+    assertEquals(result, { kind: "Error", error: "request timed out" });
+  },
+});
