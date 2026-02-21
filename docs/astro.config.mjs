@@ -74,6 +74,8 @@ export default defineConfig({
               slug: "guides/remote-data",
             },
             { label: "These — inclusive OR", slug: "guides/these" },
+            { label: "Lens — nested updates", slug: "guides/lens" },
+            { label: "Optional — optional focus", slug: "guides/optional" },
             { label: "Brand — nominal types", slug: "guides/brand" },
             { label: "Arr — array utilities", slug: "guides/arr" },
             { label: "Rec — record utilities", slug: "guides/rec" },

@@ -24,7 +24,6 @@
 
 ## Advanced Patterns
 
-- [ ] `Lens<S, A>` -- immutable nested data updates without spread chains
 - [ ] `State<S, A>` -- stateful computations that thread state through operations
 - [ ] `Do` notation -- generator-based monadic syntax for Option, Result, Task, TaskResult,
       TaskOption, TaskValidation
