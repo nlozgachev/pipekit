@@ -28,23 +28,27 @@ type whether it can fail.
 
 ## The Task approach
 
-A `Task<A>` is just a zero-argument function returning a `Promise<A>`:
+A `Task<A>` is a zero-argument function that returns a `Deferred<A>`:
 
 ```ts
-type Task<A> = () => Promise<A>;
+type Task<A> = () => Deferred<A>;
 ```
 
-This addresses both problems. The function wrapper makes it lazy — nothing runs until you call it.
-And by treating Tasks as always-succeeding computations, failure is pushed into the type:
-`TaskResult<E, A>` is `Task<Result<E, A>>`, so it's impossible to overlook.
+`Deferred<A>` is a minimal async value: it supports `await` but has no `.catch()`, `.finally()`, or
+chainable `.then()`. This reinforces the infallibility guarantee at the type level — there is simply
+no way to register a rejection handler on a `Deferred`.
+
+This addresses both problems with Promises. The function wrapper makes it lazy — nothing runs until
+you call it. And by treating Tasks as always-succeeding computations, failure is pushed into the
+type: `TaskResult<E, A>` is `Task<Result<E, A>>`, so it's impossible to overlook.
 
 ```ts
 import { Task } from "@nlozgachev/pipekit/Core";
 import { pipe } from "@nlozgachev/pipekit/Composition";
 
-const getTimestamp: Task<number> = () => Promise.resolve(Date.now());
+const getTimestamp: Task<number> = Task.resolve(Date.now());
 
-// Nothing has happened yet. getTimestamp is just a function.
+// Nothing has happened yet. getTimestamp is just a description.
 
 const pipeline = pipe(
   getTimestamp,
@@ -212,7 +216,8 @@ familiar.
 
 ## Running a Task
 
-A Task is just a function. To run it, call it:
+A Task is just a function. To run it, call it — calling returns a `Deferred<A>`, which you can
+`await` directly:
 
 ```ts
 const task: Task<number> = Task.resolve(42);
@@ -228,6 +233,18 @@ const result: Result<string, number> = await taskResult(); // Ok(42)
 
 Most of the time you'll call the pipeline at one point — the outer boundary where your application
 produces a final result or triggers a side effect.
+
+When you need an explicit `Promise<A>` — for example, to pass to a third-party API that requires
+one — convert the `Deferred` with `Deferred.toPromise`:
+
+```ts
+import { Deferred, Task } from "@nlozgachev/pipekit/Core";
+
+const p: Promise<number> = Deferred.toPromise(task());
+```
+
+This is the only case where you need to reach for `Deferred` directly. Everywhere inside a `pipe`
+chain, `await task()` is all you need.
 
 ## When to use Task vs async/await
 
@@ -245,4 +262,5 @@ Keep using `async/await` directly when:
 - You're working with code that isn't pipeline-oriented
 
 The two styles interoperate freely. `Task.from(() => someAsyncFunction())` wraps any async function
-into a Task, and calling a Task gives back a plain Promise that async/await handles normally.
+into a Task, and `await task()` integrates back into any async/await context — the `Deferred` that
+`task()` returns is thenable, so the runtime handles it exactly like a Promise.

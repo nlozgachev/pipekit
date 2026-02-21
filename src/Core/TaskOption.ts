@@ -1,3 +1,4 @@
+import { Deferred } from "./Deferred.ts";
 import { Option } from "./Option.ts";
 import { Task } from "./Task.ts";
 import { TaskResult } from "./TaskResult.ts";
@@ -52,10 +53,12 @@ export namespace TaskOption {
    * );
    * ```
    */
-  export const tryCatch = <A>(f: () => Promise<A>): TaskOption<A> => () =>
-    f()
-      .then(Option.some)
-      .catch(() => Option.none());
+  export const tryCatch = <A>(f: () => Promise<A>): TaskOption<A> =>
+    Task.from(() =>
+      f()
+        .then(Option.some)
+        .catch(() => Option.none())
+    );
 
   /**
    * Transforms the value inside a TaskOption.
@@ -84,9 +87,13 @@ export namespace TaskOption {
    * Applies a function wrapped in a TaskOption to a value wrapped in a TaskOption.
    * Both Tasks run in parallel.
    */
-  export const ap =
-    <A>(arg: TaskOption<A>) => <B>(data: TaskOption<(a: A) => B>): TaskOption<B> => () =>
-      Promise.all([data(), arg()]).then(([of_, oa]) => Option.ap(oa)(of_));
+  export const ap = <A>(arg: TaskOption<A>) => <B>(data: TaskOption<(a: A) => B>): TaskOption<B> =>
+    Task.from(() =>
+      Promise.all([
+        Deferred.toPromise(data()),
+        Deferred.toPromise(arg()),
+      ]).then(([of_, oa]) => Option.ap(oa)(of_))
+    );
 
   /**
    * Extracts a value from a TaskOption by providing handlers for both cases.

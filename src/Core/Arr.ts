@@ -1,3 +1,4 @@
+import { Deferred } from "./Deferred.ts";
 import { Option } from "./Option.ts";
 import { Result } from "./Result.ts";
 import { Task } from "./Task.ts";
@@ -395,8 +396,8 @@ export namespace Arr {
    * ```
    */
   export const traverseTask =
-    <A, B>(f: (a: A) => Task<B>) => (data: readonly A[]): Task<readonly B[]> => () =>
-      Promise.all(data.map((a) => f(a)()));
+    <A, B>(f: (a: A) => Task<B>) => (data: readonly A[]): Task<readonly B[]> =>
+      Task.from(() => Promise.all(data.map((a) => Deferred.toPromise(f(a)()))));
 
   /**
    * Collects an array of Options into an Option of array.

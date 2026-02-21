@@ -112,9 +112,15 @@ Deno.test("Task.ap applies a Task function to a Task value", async () => {
 
 Deno.test("Task.ap runs Tasks in parallel", async () => {
   const start = Date.now();
-  const slowValue: Task<number> = () => new Promise((resolve) => setTimeout(() => resolve(10), 50));
-  const slowFn: Task<(n: number) => number> = () =>
-    new Promise((resolve) => setTimeout(() => resolve((n: number) => n * 2), 50));
+  const slowValue = Task.from(
+    () => new Promise<number>((resolve) => setTimeout(() => resolve(10), 50)),
+  );
+  const slowFn = Task.from(
+    () =>
+      new Promise<(n: number) => number>((resolve) =>
+        setTimeout(() => resolve((n: number) => n * 2), 50)
+      ),
+  );
 
   const result = await pipe(slowFn, Task.ap(slowValue))();
   const elapsed = Date.now() - start;
@@ -187,10 +193,12 @@ Deno.test("Task.all with empty array returns empty array", async () => {
 Deno.test(
   "Task.all preserves order regardless of completion time",
   async () => {
-    const slow: Task<string> = () =>
-      new Promise((resolve) => setTimeout(() => resolve("slow"), 50));
-    const fast: Task<string> = () =>
-      new Promise((resolve) => setTimeout(() => resolve("fast"), 10));
+    const slow = Task.from(
+      () => new Promise<string>((resolve) => setTimeout(() => resolve("slow"), 50)),
+    );
+    const fast = Task.from(
+      () => new Promise<string>((resolve) => setTimeout(() => resolve("fast"), 10)),
+    );
 
     const result = await Task.all([slow, fast] as const)();
     assertEquals(result, ["slow", "fast"]);
@@ -199,9 +207,15 @@ Deno.test(
 
 Deno.test("Task.all runs Tasks in parallel (not sequentially)", async () => {
   const start = Date.now();
-  const t1: Task<number> = () => new Promise((resolve) => setTimeout(() => resolve(1), 50));
-  const t2: Task<number> = () => new Promise((resolve) => setTimeout(() => resolve(2), 50));
-  const t3: Task<number> = () => new Promise((resolve) => setTimeout(() => resolve(3), 50));
+  const t1 = Task.from(
+    () => new Promise<number>((resolve) => setTimeout(() => resolve(1), 50)),
+  );
+  const t2 = Task.from(
+    () => new Promise<number>((resolve) => setTimeout(() => resolve(2), 50)),
+  );
+  const t3 = Task.from(
+    () => new Promise<number>((resolve) => setTimeout(() => resolve(3), 50)),
+  );
 
   const result = await Task.all([t1, t2, t3] as const)();
   const elapsed = Date.now() - start;

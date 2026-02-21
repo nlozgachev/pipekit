@@ -1,5 +1,6 @@
 import { assertEquals, assertStrictEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { Option } from "../Option.ts";
+import { Task } from "../Task.ts";
 import { TaskOption } from "../TaskOption.ts";
 import { pipe } from "../../Composition/pipe.ts";
 
@@ -24,7 +25,10 @@ Deno.test("TaskOption.none creates a Task that resolves to None", async () => {
 // ---------------------------------------------------------------------------
 
 Deno.test("TaskOption.fromOption lifts Some into a Task", async () => {
-  assertEquals(await TaskOption.fromOption(Option.some(10))(), { kind: "Some", value: 10 });
+  assertEquals(await TaskOption.fromOption(Option.some(10))(), {
+    kind: "Some",
+    value: 10,
+  });
 });
 
 Deno.test("TaskOption.fromOption lifts None into a Task", async () => {
@@ -36,7 +40,7 @@ Deno.test("TaskOption.fromOption lifts None into a Task", async () => {
 // ---------------------------------------------------------------------------
 
 Deno.test("TaskOption.fromTask wraps a Task result in Some", async () => {
-  const task = () => Promise.resolve(5);
+  const task = Task.resolve(5);
   assertEquals(await TaskOption.fromTask(task)(), { kind: "Some", value: 5 });
 });
 
@@ -44,12 +48,15 @@ Deno.test("TaskOption.fromTask wraps a Task result in Some", async () => {
 // tryCatch
 // ---------------------------------------------------------------------------
 
-Deno.test("TaskOption.tryCatch returns Some when Promise resolves", async () => {
-  assertEquals(
-    await TaskOption.tryCatch(() => Promise.resolve(99))(),
-    { kind: "Some", value: 99 },
-  );
-});
+Deno.test(
+  "TaskOption.tryCatch returns Some when Promise resolves",
+  async () => {
+    assertEquals(await TaskOption.tryCatch(() => Promise.resolve(99))(), {
+      kind: "Some",
+      value: 99,
+    });
+  },
+);
 
 Deno.test("TaskOption.tryCatch returns None when Promise rejects", async () => {
   assertEquals(
@@ -64,21 +71,30 @@ Deno.test("TaskOption.tryCatch returns None when Promise rejects", async () => {
 
 Deno.test("TaskOption.map transforms Some value", async () => {
   assertEquals(
-    await pipe(TaskOption.some(5), TaskOption.map((n: number) => n * 2))(),
+    await pipe(
+      TaskOption.some(5),
+      TaskOption.map((n: number) => n * 2),
+    )(),
     { kind: "Some", value: 10 },
   );
 });
 
 Deno.test("TaskOption.map passes through None unchanged", async () => {
   assertEquals(
-    await pipe(TaskOption.none<number>(), TaskOption.map((n: number) => n * 2))(),
+    await pipe(
+      TaskOption.none<number>(),
+      TaskOption.map((n: number) => n * 2),
+    )(),
     { kind: "None" },
   );
 });
 
 Deno.test("TaskOption.map can change the value type", async () => {
   assertEquals(
-    await pipe(TaskOption.some(7), TaskOption.map((n: number) => `val:${n}`))(),
+    await pipe(
+      TaskOption.some(7),
+      TaskOption.map((n: number) => `val:${n}`),
+    )(),
     { kind: "Some", value: "val:7" },
   );
 });
@@ -95,27 +111,33 @@ Deno.test("TaskOption.chain applies function when Some", async () => {
   assertEquals(result, { kind: "Some", value: 10 });
 });
 
-Deno.test("TaskOption.chain propagates None without calling function", async () => {
-  let called = false;
-  await pipe(
-    TaskOption.none<number>(),
-    TaskOption.chain((_n: number) => {
-      called = true;
-      return TaskOption.some(_n);
-    }),
-  )();
-  assertStrictEquals(called, false);
-});
-
-Deno.test("TaskOption.chain returns None when function returns None", async () => {
-  assertEquals(
+Deno.test(
+  "TaskOption.chain propagates None without calling function",
+  async () => {
+    let called = false;
     await pipe(
-      TaskOption.some(5),
-      TaskOption.chain((_n: number) => TaskOption.none()),
-    )(),
-    { kind: "None" },
-  );
-});
+      TaskOption.none<number>(),
+      TaskOption.chain((_n: number) => {
+        called = true;
+        return TaskOption.some(_n);
+      }),
+    )();
+    assertStrictEquals(called, false);
+  },
+);
+
+Deno.test(
+  "TaskOption.chain returns None when function returns None",
+  async () => {
+    assertEquals(
+      await pipe(
+        TaskOption.some(5),
+        TaskOption.chain((_n: number) => TaskOption.none()),
+      )(),
+      { kind: "None" },
+    );
+  },
+);
 
 Deno.test("TaskOption.chain composes multiple async steps", async () => {
   const result = await pipe(
@@ -164,14 +186,26 @@ Deno.test("TaskOption.ap returns None when argument is None", async () => {
 
 Deno.test("TaskOption.fold calls onSome for Some", async () => {
   assertStrictEquals(
-    await pipe(TaskOption.some(5), TaskOption.fold(() => "none", (n: number) => `some:${n}`))(),
+    await pipe(
+      TaskOption.some(5),
+      TaskOption.fold(
+        () => "none",
+        (n: number) => `some:${n}`,
+      ),
+    )(),
     "some:5",
   );
 });
 
 Deno.test("TaskOption.fold calls onNone for None", async () => {
   assertStrictEquals(
-    await pipe(TaskOption.none(), TaskOption.fold(() => "none", (n: number) => `some:${n}`))(),
+    await pipe(
+      TaskOption.none(),
+      TaskOption.fold(
+        () => "none",
+        (n: number) => `some:${n}`,
+      ),
+    )(),
     "none",
   );
 });
@@ -184,7 +218,10 @@ Deno.test("TaskOption.match calls some handler for Some", async () => {
   assertStrictEquals(
     await pipe(
       TaskOption.some(5),
-      TaskOption.match({ some: (n: number) => `got:${n}`, none: () => "empty" }),
+      TaskOption.match({
+        some: (n: number) => `got:${n}`,
+        none: () => "empty",
+      }),
     )(),
     "got:5",
   );
@@ -194,7 +231,10 @@ Deno.test("TaskOption.match calls none handler for None", async () => {
   assertStrictEquals(
     await pipe(
       TaskOption.none(),
-      TaskOption.match({ some: (n: number) => `got:${n}`, none: () => "empty" }),
+      TaskOption.match({
+        some: (n: number) => `got:${n}`,
+        none: () => "empty",
+      }),
     )(),
     "empty",
   );
@@ -205,28 +245,37 @@ Deno.test("TaskOption.match calls none handler for None", async () => {
 // ---------------------------------------------------------------------------
 
 Deno.test("TaskOption.getOrElse returns value for Some", async () => {
-  assertStrictEquals(await pipe(TaskOption.some(5), TaskOption.getOrElse(0))(), 5);
+  assertStrictEquals(
+    await pipe(TaskOption.some(5), TaskOption.getOrElse(0))(),
+    5,
+  );
 });
 
 Deno.test("TaskOption.getOrElse returns default for None", async () => {
-  assertStrictEquals(await pipe(TaskOption.none<number>(), TaskOption.getOrElse(0))(), 0);
+  assertStrictEquals(
+    await pipe(TaskOption.none<number>(), TaskOption.getOrElse(0))(),
+    0,
+  );
 });
 
 // ---------------------------------------------------------------------------
 // tap
 // ---------------------------------------------------------------------------
 
-Deno.test("TaskOption.tap executes side effect on Some and returns original", async () => {
-  let seen = 0;
-  const result = await pipe(
-    TaskOption.some(5),
-    TaskOption.tap((n: number) => {
-      seen = n;
-    }),
-  )();
-  assertStrictEquals(seen, 5);
-  assertEquals(result, { kind: "Some", value: 5 });
-});
+Deno.test(
+  "TaskOption.tap executes side effect on Some and returns original",
+  async () => {
+    let seen = 0;
+    const result = await pipe(
+      TaskOption.some(5),
+      TaskOption.tap((n: number) => {
+        seen = n;
+      }),
+    )();
+    assertStrictEquals(seen, 5);
+    assertEquals(result, { kind: "Some", value: 5 });
+  },
+);
 
 Deno.test("TaskOption.tap does not execute side effect on None", async () => {
   let called = false;
@@ -245,21 +294,30 @@ Deno.test("TaskOption.tap does not execute side effect on None", async () => {
 
 Deno.test("TaskOption.filter keeps Some when predicate passes", async () => {
   assertEquals(
-    await pipe(TaskOption.some(5), TaskOption.filter((n: number) => n > 3))(),
+    await pipe(
+      TaskOption.some(5),
+      TaskOption.filter((n: number) => n > 3),
+    )(),
     { kind: "Some", value: 5 },
   );
 });
 
 Deno.test("TaskOption.filter returns None when predicate fails", async () => {
   assertEquals(
-    await pipe(TaskOption.some(2), TaskOption.filter((n: number) => n > 3))(),
+    await pipe(
+      TaskOption.some(2),
+      TaskOption.filter((n: number) => n > 3),
+    )(),
     { kind: "None" },
   );
 });
 
 Deno.test("TaskOption.filter passes through None unchanged", async () => {
   assertEquals(
-    await pipe(TaskOption.none<number>(), TaskOption.filter((_n) => true))(),
+    await pipe(
+      TaskOption.none<number>(),
+      TaskOption.filter((_n) => true),
+    )(),
     { kind: "None" },
   );
 });
@@ -270,17 +328,26 @@ Deno.test("TaskOption.filter passes through None unchanged", async () => {
 
 Deno.test("TaskOption.toTaskResult returns Ok for Some", async () => {
   assertEquals(
-    await pipe(TaskOption.some(42), TaskOption.toTaskResult(() => "missing"))(),
+    await pipe(
+      TaskOption.some(42),
+      TaskOption.toTaskResult(() => "missing"),
+    )(),
     { kind: "Ok", value: 42 },
   );
 });
 
-Deno.test("TaskOption.toTaskResult returns Err for None using onNone", async () => {
-  assertEquals(
-    await pipe(TaskOption.none<number>(), TaskOption.toTaskResult(() => "missing"))(),
-    { kind: "Error", error: "missing" },
-  );
-});
+Deno.test(
+  "TaskOption.toTaskResult returns Err for None using onNone",
+  async () => {
+    assertEquals(
+      await pipe(
+        TaskOption.none<number>(),
+        TaskOption.toTaskResult(() => "missing"),
+      )(),
+      { kind: "Error", error: "missing" },
+    );
+  },
+);
 
 // ---------------------------------------------------------------------------
 // pipe composition

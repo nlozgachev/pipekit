@@ -1,4 +1,5 @@
 export * from "./Arr.ts";
+export * from "./Deferred.ts";
 export * from "./Lens.ts";
 export * from "./Option.ts";
 export * from "./Reader.ts";

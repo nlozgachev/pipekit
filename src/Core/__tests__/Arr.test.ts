@@ -688,8 +688,10 @@ Deno.test("traverseTask - empty array resolves to empty array", async () => {
 });
 
 Deno.test("traverseTask - handles async operations", async () => {
-  const delayedDouble = (n: number): Task<number> => () =>
-    new Promise((resolve) => setTimeout(() => resolve(n * 2), 10));
+  const delayedDouble = (n: number): Task<number> =>
+    Task.from(
+      () => new Promise<number>((resolve) => setTimeout(() => resolve(n * 2), 10)),
+    );
 
   const result = await pipe([1, 2, 3], Arr.traverseTask(delayedDouble))();
   assertEquals(result, [2, 4, 6]);
@@ -717,9 +719,15 @@ Deno.test(
   "sequenceTask - preserves order despite different completion times",
   async () => {
     const tasks: Task<string>[] = [
-      () => new Promise((resolve) => setTimeout(() => resolve("slow"), 30)),
-      () => new Promise((resolve) => setTimeout(() => resolve("fast"), 5)),
-      () => new Promise((resolve) => setTimeout(() => resolve("medium"), 15)),
+      Task.from(
+        () => new Promise<string>((resolve) => setTimeout(() => resolve("slow"), 30)),
+      ),
+      Task.from(
+        () => new Promise<string>((resolve) => setTimeout(() => resolve("fast"), 5)),
+      ),
+      Task.from(
+        () => new Promise<string>((resolve) => setTimeout(() => resolve("medium"), 15)),
+      ),
     ];
     const result = await Arr.sequenceTask(tasks)();
     assertEquals(result, ["slow", "fast", "medium"]);

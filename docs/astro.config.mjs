@@ -79,6 +79,7 @@ export default defineConfig({
               label: "Validation — collecting errors",
               slug: "guides/validation",
             },
+            { label: "Deferred — infallible async values", slug: "guides/deferred" },
             { label: "Task — lazy async", slug: "guides/task" },
             {
               label: "RemoteData — loading states",

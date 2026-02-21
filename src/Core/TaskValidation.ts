@@ -1,4 +1,5 @@
 import { NonEmptyList } from "../Types/NonEmptyList.ts";
+import { Deferred } from "./Deferred.ts";
 import { Task } from "./Task.ts";
 import { Validation } from "./Validation.ts";
 
@@ -41,8 +42,9 @@ export namespace TaskValidation {
   /**
    * Creates an invalid TaskValidation from multiple errors.
    */
-  export const invalidAll = <E, A>(errors: NonEmptyList<E>): TaskValidation<E, A> =>
-    Task.resolve(Validation.invalidAll(errors));
+  export const invalidAll = <E, A>(
+    errors: NonEmptyList<E>,
+  ): TaskValidation<E, A> => Task.resolve(Validation.invalidAll(errors));
 
   /**
    * Lifts a Validation into a TaskValidation.
@@ -68,10 +70,11 @@ export namespace TaskValidation {
     f: () => Promise<A>,
     onError: (e: unknown) => E,
   ): TaskValidation<E, A> =>
-  () =>
-    f()
-      .then(Validation.valid<E, A>)
-      .catch((e) => Validation.invalid(onError(e)));
+    Task.from(() =>
+      f()
+        .then(Validation.valid<E, A>)
+        .catch((e) => Validation.invalid(onError(e)))
+    );
 
   /**
    * Transforms the success value inside a TaskValidation.
@@ -112,7 +115,12 @@ export namespace TaskValidation {
   export const ap =
     <E, A>(arg: TaskValidation<E, A>) =>
     <B>(data: TaskValidation<E, (a: A) => B>): TaskValidation<E, B> =>
-    () => Promise.all([data(), arg()]).then(([vf, va]) => Validation.ap(va)(vf));
+      Task.from(() =>
+        Promise.all([
+          Deferred.toPromise(data()),
+          Deferred.toPromise(arg()),
+        ]).then(([vf, va]) => Validation.ap(va)(vf))
+      );
 
   /**
    * Extracts a value from a TaskValidation by providing handlers for both cases.

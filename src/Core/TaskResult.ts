@@ -1,3 +1,4 @@
+import { Deferred } from "./Deferred.ts";
 import { Result } from "./Result.ts";
 import { Task } from "./Task.ts";
 
@@ -40,11 +41,15 @@ export namespace TaskResult {
    *   );
    * ```
    */
-  export const tryCatch =
-    <E, A>(f: () => Promise<A>, onError: (e: unknown) => E): TaskResult<E, A> => () =>
+  export const tryCatch = <E, A>(
+    f: () => Promise<A>,
+    onError: (e: unknown) => E,
+  ): TaskResult<E, A> =>
+    Task.from(() =>
       f()
         .then(Result.ok)
-        .catch((e) => Result.err(onError(e)));
+        .catch((e) => Result.err(onError(e)))
+    );
 
   /**
    * Transforms the success value inside a TaskResult.
@@ -132,26 +137,26 @@ export namespace TaskResult {
     when?: (error: E) => boolean;
   }) =>
   <A>(data: TaskResult<E, A>): TaskResult<E, A> =>
-  () => {
-    const { attempts, backoff, when: shouldRetry } = options;
-    const getDelay = (n: number): number =>
-      backoff === undefined ? 0 : typeof backoff === "function" ? backoff(n) : backoff;
+    Task.from(() => {
+      const { attempts, backoff, when: shouldRetry } = options;
+      const getDelay = (n: number): number =>
+        backoff === undefined ? 0 : typeof backoff === "function" ? backoff(n) : backoff;
 
-    const run = (left: number): Promise<Result<E, A>> =>
-      data().then((result) => {
-        if (Result.isOk(result)) return result;
-        if (left <= 1) return result;
-        if (shouldRetry !== undefined && !shouldRetry(result.error)) {
-          return result;
-        }
-        const ms = getDelay(attempts - left + 1);
-        return (
-          ms > 0 ? new Promise<void>((r) => setTimeout(r, ms)) : Promise.resolve()
-        ).then(() => run(left - 1));
-      });
+      const run = (left: number): Promise<Result<E, A>> =>
+        Deferred.toPromise(data()).then((result) => {
+          if (Result.isOk(result)) return result;
+          if (left <= 1) return result;
+          if (shouldRetry !== undefined && !shouldRetry(result.error)) {
+            return result;
+          }
+          const ms = getDelay(attempts - left + 1);
+          return (
+            ms > 0 ? new Promise<void>((r) => setTimeout(r, ms)) : Promise.resolve()
+          ).then(() => run(left - 1));
+        });
 
-    return run(attempts);
-  };
+      return run(attempts);
+    });
 
   /**
    * Fails a TaskResult with a typed error if it does not resolve within the given time.
@@ -165,16 +170,17 @@ export namespace TaskResult {
    * ```
    */
   export const timeout =
-    <E>(ms: number, onTimeout: () => E) => <A>(data: TaskResult<E, A>): TaskResult<E, A> => () => {
-      let timerId: ReturnType<typeof setTimeout>;
-      return Promise.race([
-        data().then((result) => {
-          clearTimeout(timerId);
-          return result;
-        }),
-        new Promise<Result<E, A>>((resolve) => {
-          timerId = setTimeout(() => resolve(Result.err(onTimeout())), ms);
-        }),
-      ]);
-    };
+    <E>(ms: number, onTimeout: () => E) => <A>(data: TaskResult<E, A>): TaskResult<E, A> =>
+      Task.from(() => {
+        let timerId: ReturnType<typeof setTimeout>;
+        return Promise.race([
+          Deferred.toPromise(data()).then((result) => {
+            clearTimeout(timerId);
+            return result;
+          }),
+          new Promise<Result<E, A>>((resolve) => {
+            timerId = setTimeout(() => resolve(Result.err(onTimeout())), ms);
+          }),
+        ]);
+      });
 }

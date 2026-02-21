@@ -1,3 +1,4 @@
+import { Deferred } from "./Deferred.ts";
 import { Result } from "./Result.ts";
 
 /**
@@ -8,9 +9,25 @@ import { Result } from "./Result.ts";
  * - **Infallible** — it never rejects. If failure is possible, encode it in the
  *   return type using `TaskResult<E, A>` instead.
  *
+ * Calling a Task returns a `Deferred<A>` — a one-shot async value that supports
+ * `await` but has no `.catch()`, `.finally()`, or chainable `.then()`.
+ *
+ * **Consuming a Task:**
+ *
+ * Use `await task()` to run it and get the value directly:
+ * ```ts
+ * const value: number = await task();
+ * ```
+ *
+ * When you need an explicit `Promise<A>` (e.g. for a third-party API), convert
+ * the `Deferred` with `Deferred.toPromise`:
+ * ```ts
+ * const p: Promise<number> = Deferred.toPromise(task());
+ * ```
+ *
  * @example
  * ```ts
- * const getTimestamp: Task<number> = () => Promise.resolve(Date.now());
+ * const getTimestamp: Task<number> = Task.resolve(Date.now());
  *
  * // Nothing runs yet — getTimestamp is just a description
  * const formatted = pipe(
@@ -22,7 +39,12 @@ import { Result } from "./Result.ts";
  * const result = await formatted();
  * ```
  */
-export type Task<A> = () => Promise<A>;
+export type Task<A> = () => Deferred<A>;
+
+// Internal helper — not exported. Runs a Task and converts the result to a Promise
+// so that combinators can use Promise chaining (.then, Promise.all, Promise.race, etc.)
+// internally without leaking that primitive through the public API.
+const toPromise = <A>(task: Task<A>): Promise<A> => Deferred.toPromise(task());
 
 export namespace Task {
   /**
@@ -31,21 +53,21 @@ export namespace Task {
    * @example
    * ```ts
    * const task = Task.resolve(42);
-   * task().then(console.log); // 42
+   * const value = await task(); // 42
    * ```
    */
-  export const resolve = <A>(value: A): Task<A> => () => Promise.resolve(value);
+  export const resolve = <A>(value: A): Task<A> => () =>
+    Deferred.fromPromise(Promise.resolve(value));
 
   /**
    * Creates a Task from a function that returns a Promise.
-   * Alias for directly creating a Task.
    *
    * @example
    * ```ts
    * const getTimestamp = Task.from(() => Promise.resolve(Date.now()));
    * ```
    */
-  export const from = <A>(f: () => Promise<A>): Task<A> => f;
+  export const from = <A>(f: () => Promise<A>): Task<A> => () => Deferred.fromPromise(f());
 
   /**
    * Transforms the value inside a Task.
@@ -55,27 +77,29 @@ export namespace Task {
    * pipe(
    *   Task.resolve(5),
    *   Task.map(n => n * 2)
-   * )(); // Promise<10>
+   * )(); // Deferred<10>
    * ```
    */
-  export const map = <A, B>(f: (a: A) => B) => (data: Task<A>): Task<B> => () => data().then(f);
+  export const map = <A, B>(f: (a: A) => B) => (data: Task<A>): Task<B> =>
+    from(() => toPromise(data).then(f));
 
   /**
    * Chains Task computations. Passes the resolved value of the first Task to f.
    *
    * @example
    * ```ts
-   * const readUserId: Task<string> = () => Promise.resolve(session.userId);
-   * const loadPrefs = (id: string): Task<Preferences> => () => Promise.resolve(prefsCache.get(id));
+   * const readUserId: Task<string> = Task.resolve(session.userId);
+   * const loadPrefs = (id: string): Task<Preferences> =>
+   *   Task.resolve(prefsCache.get(id));
    *
    * pipe(
    *   readUserId,
    *   Task.chain(loadPrefs)
-   * )(); // Promise<Preferences>
+   * )(); // Deferred<Preferences>
    * ```
    */
-  export const chain = <A, B>(f: (a: A) => Task<B>) => (data: Task<A>): Task<B> => () =>
-    data().then((a) => f(a)());
+  export const chain = <A, B>(f: (a: A) => Task<B>) => (data: Task<A>): Task<B> =>
+    from(() => toPromise(data).then((a) => toPromise(f(a))));
 
   /**
    * Applies a function wrapped in a Task to a value wrapped in a Task.
@@ -88,11 +112,16 @@ export namespace Task {
    *   Task.resolve(add),
    *   Task.ap(Task.resolve(5)),
    *   Task.ap(Task.resolve(3))
-   * )(); // Promise<8>
+   * )(); // Deferred<8>
    * ```
    */
-  export const ap = <A>(arg: Task<A>) => <B>(data: Task<(a: A) => B>): Task<B> => () =>
-    Promise.all([data(), arg()]).then(([f, a]) => f(a));
+  export const ap = <A>(arg: Task<A>) => <B>(data: Task<(a: A) => B>): Task<B> =>
+    from(() =>
+      Promise.all([
+        toPromise(data),
+        toPromise(arg),
+      ]).then(([f, a]) => f(a))
+    );
 
   /**
    * Executes a side effect on the value without changing the Task.
@@ -107,11 +136,13 @@ export namespace Task {
    * );
    * ```
    */
-  export const tap = <A>(f: (a: A) => void) => (data: Task<A>): Task<A> => () =>
-    data().then((a) => {
-      f(a);
-      return a;
-    });
+  export const tap = <A>(f: (a: A) => void) => (data: Task<A>): Task<A> =>
+    from(() =>
+      toPromise(data).then((a) => {
+        f(a);
+        return a;
+      })
+    );
 
   /**
    * Runs multiple Tasks in parallel and collects their results.
@@ -119,18 +150,20 @@ export namespace Task {
    * @example
    * ```ts
    * Task.all([loadConfig, detectLocale, loadTheme])();
-   * // Promise<[Config, string, Theme]>
+   * // Deferred<[Config, string, Theme]>
    * ```
    */
   export const all = <T extends readonly Task<unknown>[]>(
     tasks: T,
   ): Task<{ [K in keyof T]: T[K] extends Task<infer A> ? A : never }> =>
-  () =>
-    Promise.all(tasks.map((t) => t())) as Promise<
-      {
-        [K in keyof T]: T[K] extends Task<infer A> ? A : never;
-      }
-    >;
+    from(
+      () =>
+        Promise.all(tasks.map((t) => toPromise(t))) as Promise<
+          {
+            [K in keyof T]: T[K] extends Task<infer A> ? A : never;
+          }
+        >,
+    );
 
   /**
    * Delays the execution of a Task by the specified milliseconds.
@@ -144,8 +177,16 @@ export namespace Task {
    * )(); // Resolves after 1 second
    * ```
    */
-  export const delay = (ms: number) => <A>(data: Task<A>): Task<A> => () =>
-    new Promise((resolve, reject) => setTimeout(() => data().then(resolve, reject), ms));
+  export const delay = (ms: number) => <A>(data: Task<A>): Task<A> =>
+    from(
+      () =>
+        new Promise<A>((resolve) =>
+          setTimeout(
+            () => toPromise(data).then(resolve),
+            ms,
+          )
+        ),
+    );
 
   /**
    * Runs a Task a fixed number of times sequentially, collecting all results into an array.
@@ -160,20 +201,21 @@ export namespace Task {
    * ```
    */
   export const repeat =
-    (options: { times: number; delay?: number }) => <A>(task: Task<A>): Task<A[]> => () => {
-      const { times, delay: ms } = options;
-      if (times <= 0) return Promise.resolve([]);
-      const results: A[] = [];
-      const wait = (): Promise<void> =>
-        ms !== undefined && ms > 0 ? new Promise((r) => setTimeout(r, ms)) : Promise.resolve();
-      const run = (left: number): Promise<A[]> =>
-        task().then((a) => {
-          results.push(a);
-          if (left <= 1) return results;
-          return wait().then(() => run(left - 1));
-        });
-      return run(times);
-    };
+    (options: { times: number; delay?: number }) => <A>(task: Task<A>): Task<A[]> =>
+      from(() => {
+        const { times, delay: ms } = options;
+        if (times <= 0) return Promise.resolve([]);
+        const results: A[] = [];
+        const wait = (): Promise<void> =>
+          ms !== undefined && ms > 0 ? new Promise((r) => setTimeout(r, ms)) : Promise.resolve();
+        const run = (left: number): Promise<A[]> =>
+          toPromise(task).then((a) => {
+            results.push(a);
+            if (left <= 1) return results;
+            return wait().then(() => run(left - 1));
+          });
+        return run(times);
+      });
 
   /**
    * Runs a Task repeatedly until the result satisfies a predicate, returning that result.
@@ -188,17 +230,18 @@ export namespace Task {
    * ```
    */
   export const repeatUntil =
-    <A>(options: { when: (a: A) => boolean; delay?: number }) => (task: Task<A>): Task<A> => () => {
-      const { when: predicate, delay: ms } = options;
-      const wait = (): Promise<void> =>
-        ms !== undefined && ms > 0 ? new Promise((r) => setTimeout(r, ms)) : Promise.resolve();
-      const run = (): Promise<A> =>
-        task().then((a) => {
-          if (predicate(a)) return a;
-          return wait().then(run);
-        });
-      return run();
-    };
+    <A>(options: { when: (a: A) => boolean; delay?: number }) => (task: Task<A>): Task<A> =>
+      from(() => {
+        const { when: predicate, delay: ms } = options;
+        const wait = (): Promise<void> =>
+          ms !== undefined && ms > 0 ? new Promise((r) => setTimeout(r, ms)) : Promise.resolve();
+        const run = (): Promise<A> =>
+          toPromise(task).then((a) => {
+            if (predicate(a)) return a;
+            return wait().then(run);
+          });
+        return run();
+      });
 
   /**
    * Converts a `Task<A>` into a `Task<Result<E, A>>`, resolving to `Err` if the
@@ -214,16 +257,17 @@ export namespace Task {
    * ```
    */
   export const timeout =
-    <E>(ms: number, onTimeout: () => E) => <A>(task: Task<A>): Task<Result<E, A>> => () => {
-      let timerId: ReturnType<typeof setTimeout>;
-      return Promise.race([
-        task().then((a): Result<E, A> => {
-          clearTimeout(timerId);
-          return Result.ok(a);
-        }),
-        new Promise<Result<E, A>>((resolve) => {
-          timerId = setTimeout(() => resolve(Result.err(onTimeout())), ms);
-        }),
-      ]);
-    };
+    <E>(ms: number, onTimeout: () => E) => <A>(task: Task<A>): Task<Result<E, A>> =>
+      from(() => {
+        let timerId: ReturnType<typeof setTimeout>;
+        return Promise.race([
+          toPromise(task).then((a): Result<E, A> => {
+            clearTimeout(timerId);
+            return Result.ok(a);
+          }),
+          new Promise<Result<E, A>>((resolve) => {
+            timerId = setTimeout(() => resolve(Result.err(onTimeout())), ms);
+          }),
+        ]);
+      });
 }
