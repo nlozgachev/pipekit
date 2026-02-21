@@ -96,7 +96,8 @@ type Locale = { symbol: string; separator: string };
 
 const formatCents = (cents: number): Reader<Locale, string> =>
   Reader.asks(
-    (locale) => `${locale.symbol}${(cents / 100).toFixed(2).replace(".", locale.separator)}`,
+    (locale) =>
+      `${locale.symbol}${(cents / 100).toFixed(2).replace(".", locale.separator)}`,
   );
 
 const labeledAmount = (label: string, cents: number): Reader<Locale, string> =>
@@ -128,7 +129,7 @@ const formatSummary = (subtotal: number, tax: number): Reader<Locale, string> =>
       pipe(
         labeledAmount("Tax", tax),
         Reader.map((t) => `${sub}\n${t}`),
-      )
+      ),
     ),
   );
 
@@ -149,27 +150,34 @@ type DbConfig = { host: string; port: number };
 type AppEnv = { db: DbConfig; api: ApiConfig };
 
 // This Reader knows only about DbConfig
-const connectionString: Reader<DbConfig, string> =
-  Reader.asks((db) => `postgres://${db.host}:${db.port}/myapp`);
+const connectionString: Reader<DbConfig, string> = Reader.asks(
+  (db) => `postgres://${db.host}:${db.port}/myapp`,
+);
 
 // This Reader knows only about ApiConfig
-const authHeader: Reader<ApiConfig, string> =
-  Reader.asks((api) => `Bearer ${api.apiKey}`);
+const authHeader: Reader<ApiConfig, string> = Reader.asks(
+  (api) => `Bearer ${api.apiKey}`,
+);
 
 // Widen each to AppEnv by telling it where to find its slice
 const diagnostics: Reader<AppEnv, string> = pipe(
-  pipe(connectionString, Reader.local((env: AppEnv) => env.db)),
+  connectionString,
+  Reader.local((env: AppEnv) => env.db),
   Reader.chain((conn) =>
     pipe(
-      pipe(authHeader, Reader.local((env: AppEnv) => env.api)),
+      authHeader,
+      Reader.local((env: AppEnv) => env.api),
       Reader.map((auth) => `db=${conn}  auth=${auth}`),
-    )
+    ),
   ),
 );
 
 pipe(
   diagnostics,
-  Reader.run({ db: { host: "localhost", port: 5432 }, api: { baseUrl: "...", apiKey: "secret" } }),
+  Reader.run({
+    db: { host: "localhost", port: 5432 },
+    api: { baseUrl: "...", apiKey: "secret" },
+  }),
 );
 // "db=postgres://localhost:5432/myapp  auth=Bearer secret"
 ```
@@ -177,6 +185,29 @@ pipe(
 `connectionString` and `authHeader` are independently useful Readers with narrow, precise
 requirements. `local` lifts them into `AppEnv` without changing their implementations. Library
 functions declare only what they need; application code composes them using `local`.
+
+## Applying wrapped functions with `ap`
+
+`ap` applies a function wrapped in a Reader to a value wrapped in a Reader. Both Readers see the
+same environment. This is useful when you need to combine the outputs of multiple dependent
+computations:
+
+```ts
+const multiply = (a: number) => (b: number) => a * b;
+
+const firstNumber: Reader<Config, number> = Reader.asks((c) => c.multiplier);
+const secondNumber: Reader<Config, number> = Reader.asks((c) => c.offset);
+
+const product: Reader<Config, number> = pipe(
+  Reader.resolve(multiply),
+  Reader.ap(firstNumber),
+  Reader.ap(secondNumber),
+);
+
+pipe(product, Reader.run({ multiplier: 3, offset: 5 })); // 15
+```
+
+`ap` sequences applications where the function and value both depend on the environment.
 
 ## Side effects with `tap`
 
