@@ -55,6 +55,32 @@ covers far more ground, uses precise typeclass names (`Functor`, `Monad`, `Appli
 designed for users who are already familiar with functional programming. This library covers a
 smaller surface area and uses names that describe behaviour rather than algebraic structure.
 
+### Optics
+
+`Lens` and `Optional` belong to a tradition in functional programming of treating "a path through
+data" as a composable first-class value — a path you define once, name, pass around, and compose
+into deeper paths. The tradition originates primarily in Haskell, where Edward Kmett's `lens`
+package is the canonical implementation.
+
+The `lens` package defines a full optics hierarchy — `Iso`, `Prism`, `Lens`, `Traversal`, `Fold`,
+`Getter`, `Setter` — and unifies them using a profunctor encoding: an optic is a polymorphic
+function, and composition is ordinary function composition. This encoding is elegant, but it relies
+on higher-kinded types — and while TypeScript can approximate those through HKT encoding tricks
+(as fp-ts demonstrates), this library deliberately avoids that approach for the same reasons
+described in the typeclass section below.
+
+This library uses a simpler "concrete" representation instead. Each optic is a plain record with
+`get` and `set` fields:
+
+```ts
+type Lens<S, A>     = { get: (s: S) => A;          set: (a: A) => (s: S) => S };
+type Optional<S, A> = { get: (s: S) => Option<A>;  set: (a: A) => (s: S) => S };
+```
+
+The concrete form gives up uniform composition across the full hierarchy but gains implementation
+transparency — you can read the type and see exactly what it does — and introduces no encoding
+overhead whatsoever.
+
 ## Structural principles
 
 ### Tagged unions
@@ -108,6 +134,12 @@ error exists when a type is in an invalid state.
 This consistency matters at runtime too: `Option.map` and `Result.map` and `RemoteData.map` all look
 for `.value` to find the success payload. Sharing the field name is what makes this uniform without
 code duplication.
+
+`These` is the deliberate exception. Its two payloads — `TheseFirst`, `TheseSecond`, and
+`TheseBoth` — use `first` and `second` as field names rather than `value` and `error`. `These<A,
+B>` makes no claim about which side is "good" and which is "bad": it is a symmetric inclusive-OR,
+not a biased success/failure container. Importing the `value`/`error` convention would give it a
+directionality it doesn't have.
 
 ### The namespace pattern
 
@@ -223,6 +255,15 @@ branded value is exactly the underlying value — no wrapper object, no tag fiel
 allocation. The brand is erased entirely by the TypeScript compiler. `Brand.wrap` and `Brand.unwrap`
 are identity functions at runtime; their only job is to satisfy the type checker.
 
+**The full optics hierarchy.** `Lens` and `Optional` cover two points in a much larger optics
+space. The most practically useful omissions are `Prism` — which focuses into one variant of a
+union type (e.g. the inner value of `Some`, or the `Ok` case of a `Result`) — and `Traversal` —
+which focuses on multiple values simultaneously, useful for updating all elements of a nested array
+in one composed path. Both were left out because the concrete `{ get, set }` encoding doesn't
+compose them uniformly with `Lens` and `Optional` without additional per-combination composition
+functions, adding complexity proportional to the square of the number of optic types. In practice,
+`Lens` and `Optional` cover the cases that arise most often in everyday TypeScript code.
+
 ## Acknowledgements
 
 None of this exists in a vacuum.
@@ -236,7 +277,8 @@ faithfully in TypeScript.
 Particular thanks to Giulio Canti, whose fp-ts library is the clearest demonstration that typed
 functional programming is practical in TypeScript — and whose source code taught me more about the
 language than any tutorial. To Kris Jenkins, for naming `RemoteData` and making the case so clearly
-that the pattern spread beyond Elm. To the Haskell community, for `These` and for an enormous body
+that the pattern spread beyond Elm. To Edward Kmett for the `lens` library and the optics tradition that `Lens` and `Optional` descend
+from. To the Haskell community more broadly — for `These` and for an enormous body
 of work that keeps the ecosystem moving forward. And to the TypeScript team, for building a type
 system expressive enough that most of these ideas can be encoded at all.
 
