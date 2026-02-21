@@ -29,8 +29,8 @@ import { Brand } from "@nlozgachev/pipekit/Types";
 type UserId     = Brand<"UserId",     string>;
 type CustomerId = Brand<"CustomerId", string>;
 
-const toUserId     = Brand.make<"UserId",     string>();
-const toCustomerId = Brand.make<"CustomerId", string>();
+const toUserId     = Brand.wrap<"UserId",     string>();
+const toCustomerId = Brand.wrap<"CustomerId", string>();
 
 function getUser(id: UserId): User { ... }
 
@@ -48,10 +48,10 @@ The type error happens at the call site, not at runtime. The values themselves a
 ```ts
 type UserId = Brand<"UserId", string>;
 
-const toUserId = Brand.make<"UserId", string>();
+const toUserId = Brand.wrap<"UserId", string>();
 ```
 
-`Brand.make<K, T>()` returns a constructor function. Calling that function wraps a value of type `T` in the brand:
+`Brand.wrap<K, T>()` returns a constructor. Calling that constructor wraps a value of type `T` in the brand:
 
 ```ts
 const id: UserId = toUserId("u-42"); // UserId
@@ -76,7 +76,7 @@ const raw: string = Brand.unwrap(id); // "u-42"
 
 ## Zero runtime cost
 
-The brand is entirely erased by the TypeScript compiler. At runtime, `Brand.make` and `Brand.unwrap` are identity functions — they return the value unchanged. No wrapper object, no extra allocation, no tag field in the actual value. The only thing that exists is the compile-time phantom type.
+The brand is entirely erased by the TypeScript compiler. At runtime, `Brand.wrap` and `Brand.unwrap` are identity functions — they return the value unchanged. No wrapper object, no extra allocation, no tag field in the actual value. The only thing that exists is the compile-time phantom type.
 
 ## Common use cases
 
@@ -112,12 +112,12 @@ type SafeHtml = Brand<"SafeHtml", string>;
 
 ## Smart constructors
 
-`Brand.make` is an unchecked cast — it trusts you to provide a valid value. For brands that carry invariants (like "this string is a valid email"), wrap the constructor in a function that validates first:
+`Brand.wrap` returns an unchecked constructor — it trusts you to provide a valid value. For brands that carry invariants (like "this string is a valid email"), wrap the constructor in a function that validates first:
 
 ```ts
 type Email = Brand<"Email", string>;
 
-const toEmail = Brand.make<"Email", string>();
+const toEmail = Brand.wrap<"Email", string>();
 
 const parseEmail = (s: string): Option<Email> =>
   s.includes("@") ? Option.of(toEmail(s)) : Option.toNone();

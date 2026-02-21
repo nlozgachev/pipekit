@@ -156,7 +156,7 @@ This matters for consumers of the `invalid` branch. If `errors` were `E[]`, ever
 
 **Classes and `extends`.** Every type is plain data. There's no inheritance hierarchy and no `instanceof` checks in user-facing code.
 
-**Runtime overhead for brands.** `Brand<K, T>` exists only as a compile-time phantom. At runtime, a branded value is exactly the underlying value — no wrapper object, no tag field, no extra allocation. The brand is erased entirely by the TypeScript compiler. `Brand.make` and `Brand.unwrap` are identity functions at runtime; their only job is to satisfy the type checker.
+**Runtime overhead for brands.** `Brand<K, T>` exists only as a compile-time phantom. At runtime, a branded value is exactly the underlying value — no wrapper object, no tag field, no extra allocation. The brand is erased entirely by the TypeScript compiler. `Brand.wrap` and `Brand.unwrap` are identity functions at runtime; their only job is to satisfy the type checker.
 
 ## Acknowledgements
 
