@@ -1,163 +1,171 @@
-import { Err, Ok, Result } from "./Result.ts";
-import { WithError, WithKind, WithValue } from "./InternalTypes.ts";
+import { WithFirst, WithKind, WithSecond } from "./InternalTypes.ts";
 
 /**
- * These<E, A> is an inclusive-OR type: it holds an error value (E), a success
- * value (A), or both simultaneously. It reuses Ok<A> and Err<E> from Result,
- * adding a third Both<E, A> variant for partial success with a warning/error.
+ * These<A, B> is an inclusive-OR type: it holds a first value (A), a second
+ * value (B), or both simultaneously. Neither side carries a success/failure
+ * connotation — it is a neutral pair where any combination is valid.
  *
- * - Err(e)      — only an error/warning (no success value)
- * - Ok(a)       — only a success value (no error)
- * - Both(e, a)  — a warning together with a success value
+ * - First(a)     — only a first value
+ * - Second(b)    — only a second value
+ * - Both(a, b)   — first and second values simultaneously
+ *
+ * A common use: lenient parsers or processors that carry a diagnostic note
+ * alongside a result, without losing either piece of information.
  *
  * @example
  * ```ts
- * const parse = (s: string): These<string, number> => {
- *   const n = parseFloat(s.trim());
- *   if (isNaN(n)) return These.err("Not a number");
- *   if (s !== s.trim()) return These.both("Leading/trailing whitespace trimmed", n);
- *   return These.ok(n);
+ * const parse = (s: string): These<number, string> => {
+ *   const trimmed = s.trim();
+ *   const n = parseFloat(trimmed);
+ *   if (isNaN(n)) return These.second("Not a number");
+ *   if (s !== trimmed) return These.both(n, "Leading/trailing whitespace trimmed");
+ *   return These.first(n);
  * };
  * ```
  */
-export type These<E, A> = Err<E> | Ok<A> | Both<E, A>;
+export type These<A, B> = TheseFirst<A> | TheseSecond<B> | TheseBoth<A, B>;
 
-export type Both<E, A> = WithKind<"Both"> & WithError<E> & WithValue<A>;
+export type TheseFirst<T> = WithKind<"First"> & WithFirst<T>;
+export type TheseSecond<T> = WithKind<"Second"> & WithSecond<T>;
+export type TheseBoth<First, Second> = WithKind<"Both"> & WithFirst<First> & WithSecond<Second>;
 
 export namespace These {
   /**
-   * Creates a These holding only a success value (no error).
+   * Creates a These holding only a first value.
    *
    * @example
    * ```ts
-   * These.ok(42);
+   * These.first(42); // { kind: "First", first: 42 }
    * ```
    */
-  export const ok = <A>(value: A): Ok<A> => Result.ok(value);
+  export const first = <A>(value: A): TheseFirst<A> => ({ kind: "First", first: value });
 
   /**
-   * Creates a These holding only an error/warning (no success value).
+   * Creates a These holding only a second value.
    *
    * @example
    * ```ts
-   * These.err("Something went wrong");
+   * These.second("warning"); // { kind: "Second", second: "warning" }
    * ```
    */
-  export const err = <E>(error: E): Err<E> => Result.err(error);
+  export const second = <B>(value: B): TheseSecond<B> => ({ kind: "Second", second: value });
 
   /**
-   * Creates a These holding both an error/warning and a success value.
+   * Creates a These holding both a first and a second value simultaneously.
    *
    * @example
    * ```ts
-   * These.both("Deprecated API used", result);
+   * These.both(42, "Deprecated API used"); // { kind: "Both", first: 42, second: "Deprecated API used" }
    * ```
    */
-  export const both = <E, A>(error: E, value: A): Both<E, A> => ({
+  export const both = <A, B>(first: A, second: B): TheseBoth<A, B> => ({
     kind: "Both",
-    error,
-    value,
+    first,
+    second,
   });
 
   /**
-   * Type guard — checks if a These holds only an error/warning.
+   * Type guard — checks if a These holds only a first value.
    */
-  export const isErr = <E, A>(data: These<E, A>): data is Err<E> => data.kind === "Error";
+  export const isFirst = <A, B>(data: These<A, B>): data is TheseFirst<A> => data.kind === "First";
 
   /**
-   * Type guard — checks if a These holds only a success value.
+   * Type guard — checks if a These holds only a second value.
    */
-  export const isOk = <E, A>(data: These<E, A>): data is Ok<A> => data.kind === "Ok";
+  export const isSecond = <A, B>(data: These<A, B>): data is TheseSecond<B> =>
+    data.kind === "Second";
 
   /**
-   * Type guard — checks if a These holds both an error/warning and a success value.
+   * Type guard — checks if a These holds both values simultaneously.
    */
-  export const isBoth = <E, A>(data: These<E, A>): data is Both<E, A> => data.kind === "Both";
+  export const isBoth = <A, B>(data: These<A, B>): data is TheseBoth<A, B> => data.kind === "Both";
 
   /**
-   * Returns true if the These contains a success value (Ok or Both).
+   * Returns true if the These contains a first value (First or Both).
    */
-  export const hasValue = <E, A>(
-    data: These<E, A>,
-  ): data is Ok<A> | Both<E, A> => data.kind === "Ok" || data.kind === "Both";
+  export const hasFirst = <A, B>(
+    data: These<A, B>,
+  ): data is TheseFirst<A> | TheseBoth<A, B> => data.kind === "First" || data.kind === "Both";
 
   /**
-   * Returns true if the These contains an error/warning (Err or Both).
+   * Returns true if the These contains a second value (Second or Both).
    */
-  export const hasError = <E, A>(
-    data: These<E, A>,
-  ): data is Err<E> | Both<E, A> => data.kind === "Error" || data.kind === "Both";
+  export const hasSecond = <A, B>(
+    data: These<A, B>,
+  ): data is TheseSecond<B> | TheseBoth<A, B> => data.kind === "Second" || data.kind === "Both";
 
   /**
-   * Transforms the success value, leaving the error unchanged.
+   * Transforms the first value, leaving the second unchanged.
    *
    * @example
    * ```ts
-   * pipe(These.ok(5), These.map(n => n * 2));          // Ok(10)
-   * pipe(These.both("warn", 5), These.map(n => n * 2)); // Both("warn", 10)
-   * pipe(These.err("err"), These.map(n => n * 2));      // Err("err")
+   * pipe(These.first(5), These.mapFirst(n => n * 2));           // First(10)
+   * pipe(These.both(5, "warn"), These.mapFirst(n => n * 2));    // Both(10, "warn")
+   * pipe(These.second("warn"), These.mapFirst(n => n * 2));     // Second("warn")
    * ```
    */
-  export const map = <A, B>(f: (a: A) => B) => <E>(data: These<E, A>): These<E, B> => {
-    if (isErr(data)) return data;
-    if (isOk(data)) return ok(f(data.value));
-    return both(data.error, f(data.value));
+  export const mapFirst = <A, C>(f: (a: A) => C) => <B>(data: These<A, B>): These<C, B> => {
+    if (isSecond(data)) return data;
+    if (isFirst(data)) return first(f(data.first));
+    return both(f(data.first), data.second);
   };
 
   /**
-   * Transforms the error/warning value, leaving the success value unchanged.
+   * Transforms the second value, leaving the first unchanged.
    *
    * @example
    * ```ts
-   * pipe(These.err("err"), These.mapErr(e => e.toUpperCase()));         // Err("ERR")
-   * pipe(These.both("warn", 5), These.mapErr(e => e.toUpperCase()));    // Both("WARN", 5)
+   * pipe(These.second("warn"), These.mapSecond(e => e.toUpperCase()));     // Second("WARN")
+   * pipe(These.both(5, "warn"), These.mapSecond(e => e.toUpperCase()));    // Both(5, "WARN")
    * ```
    */
-  export const mapErr = <E, F>(f: (e: E) => F) => <A>(data: These<E, A>): These<F, A> => {
-    if (isOk(data)) return data;
-    if (isErr(data)) return err(f(data.error));
-    return both(f(data.error), data.value);
+  export const mapSecond = <B, D>(f: (b: B) => D) => <A>(data: These<A, B>): These<A, D> => {
+    if (isFirst(data)) return data;
+    if (isSecond(data)) return second(f(data.second));
+    return both(data.first, f(data.second));
   };
 
   /**
-   * Transforms both the error and success values independently.
+   * Transforms both the first and second values independently.
    *
    * @example
    * ```ts
    * pipe(
-   *   These.both("warn", 5),
-   *   These.bimap(e => e.toUpperCase(), n => n * 2)
-   * ); // Both("WARN", 10)
+   *   These.both(5, "warn"),
+   *   These.bimap(n => n * 2, e => e.toUpperCase())
+   * ); // Both(10, "WARN")
    * ```
    */
-  export const bimap =
-    <E, F, A, B>(onErr: (e: E) => F, onOk: (a: A) => B) => (data: These<E, A>): These<F, B> => {
-      if (isErr(data)) return err(onErr(data.error));
-      if (isOk(data)) return ok(onOk(data.value));
-      return both(onErr(data.error), onOk(data.value));
-    };
+  export const bimap = <A, C, B, D>(onFirst: (a: A) => C, onSecond: (b: B) => D) =>
+  (
+    data: These<A, B>,
+  ): These<C, D> => {
+    if (isSecond(data)) return second(onSecond(data.second));
+    if (isFirst(data)) return first(onFirst(data.first));
+    return both(onFirst(data.first), onSecond(data.second));
+  };
 
   /**
-   * Chains These computations by passing the success value to f.
-   * - Err propagates unchanged.
-   * - Ok(a) applies f(a) directly.
-   * - Both(e, a): applies f(a); if the result is Ok(b), returns Both(e, b)
-   *   to preserve the warning. Otherwise returns f(a) as-is.
+   * Chains These computations by passing the first value to f.
+   * - Second propagates unchanged.
+   * - First(a) applies f(a) directly.
+   * - Both(a, b): applies f(a); if the result is First(c), returns Both(c, b)
+   *   to preserve the second value. Otherwise returns f(a) as-is.
    *
    * @example
    * ```ts
-   * const double = (n: number): These<string, number> => These.ok(n * 2);
+   * const double = (n: number): These<number, string> => These.first(n * 2);
    *
-   * pipe(These.ok(5), These.chain(double));           // Ok(10)
-   * pipe(These.both("warn", 5), These.chain(double)); // Both("warn", 10)
-   * pipe(These.err("err"), These.chain(double));      // Err("err")
+   * pipe(These.first(5), These.chain(double));            // First(10)
+   * pipe(These.both(5, "warn"), These.chain(double));     // Both(10, "warn")
+   * pipe(These.second("warn"), These.chain(double));      // Second("warn")
    * ```
    */
-  export const chain = <E, A, B>(f: (a: A) => These<E, B>) => (data: These<E, A>): These<E, B> => {
-    if (isErr(data)) return data;
-    if (isOk(data)) return f(data.value);
-    const result = f(data.value);
-    return isOk(result) ? both(data.error, result.value) : result;
+  export const chain = <A, B, C>(f: (a: A) => These<C, B>) => (data: These<A, B>): These<C, B> => {
+    if (isSecond(data)) return data;
+    if (isFirst(data)) return f(data.first);
+    const result = f(data.first);
+    return isFirst(result) ? both(result.first, data.second) : result;
   };
 
   /**
@@ -168,22 +176,22 @@ export namespace These {
    * pipe(
    *   these,
    *   These.fold(
-   *     e => `Error: ${e}`,
-   *     a => `Value: ${a}`,
-   *     (e, a) => `Both: ${e} / ${a}`
+   *     a => `First: ${a}`,
+   *     b => `Second: ${b}`,
+   *     (a, b) => `Both: ${a} / ${b}`
    *   )
    * );
    * ```
    */
-  export const fold = <E, A, B>(
-    onErr: (e: E) => B,
-    onOk: (a: A) => B,
-    onBoth: (e: E, a: A) => B,
+  export const fold = <A, B, C>(
+    onFirst: (a: A) => C,
+    onSecond: (b: B) => C,
+    onBoth: (a: A, b: B) => C,
   ) =>
-  (data: These<E, A>): B => {
-    if (isErr(data)) return onErr(data.error);
-    if (isOk(data)) return onOk(data.value);
-    return onBoth(data.error, data.value);
+  (data: These<A, B>): C => {
+    if (isSecond(data)) return onSecond(data.second);
+    if (isFirst(data)) return onFirst(data.first);
+    return onBoth(data.first, data.second);
   };
 
   /**
@@ -194,94 +202,83 @@ export namespace These {
    * pipe(
    *   these,
    *   These.match({
-   *     err: e => `Error: ${e}`,
-   *     ok: a => `Value: ${a}`,
-   *     both: (e, a) => `Both: ${e} / ${a}`
+   *     first: a => `First: ${a}`,
+   *     second: b => `Second: ${b}`,
+   *     both: (a, b) => `Both: ${a} / ${b}`
    *   })
    * );
    * ```
    */
-  export const match = <E, A, B>(cases: {
-    err: (e: E) => B;
-    ok: (a: A) => B;
-    both: (e: E, a: A) => B;
+  export const match = <A, B, C>(cases: {
+    first: (a: A) => C;
+    second: (b: B) => C;
+    both: (a: A, b: B) => C;
   }) =>
-  (data: These<E, A>): B => {
-    if (isErr(data)) return cases.err(data.error);
-    if (isOk(data)) return cases.ok(data.value);
-    return cases.both(data.error, data.value);
+  (data: These<A, B>): C => {
+    if (isSecond(data)) return cases.second(data.second);
+    if (isFirst(data)) return cases.first(data.first);
+    return cases.both(data.first, data.second);
   };
 
   /**
-   * Returns the success value, or a default if the These has no success value.
+   * Returns the first value, or a default if the These has no first value.
    *
    * @example
    * ```ts
-   * pipe(These.ok(5), These.getOrElse(0));           // 5
-   * pipe(These.both("warn", 5), These.getOrElse(0)); // 5
-   * pipe(These.err("err"), These.getOrElse(0));      // 0
+   * pipe(These.first(5), These.getOrElse(0));            // 5
+   * pipe(These.both(5, "warn"), These.getOrElse(0));     // 5
+   * pipe(These.second("warn"), These.getOrElse(0));      // 0
    * ```
    */
-  export const getOrElse = <A>(defaultValue: A) => <E>(data: These<E, A>): A =>
-    hasValue(data) ? data.value : defaultValue;
+  export const getOrElse = <A>(defaultValue: A) => <B>(data: These<A, B>): A =>
+    hasFirst(data) ? data.first : defaultValue;
 
   /**
-   * Executes a side effect on the success value without changing the These.
+   * Executes a side effect on the first value without changing the These.
    * Useful for logging or debugging.
+   *
+   * @example
+   * ```ts
+   * pipe(These.first(5), These.tap(console.log)); // logs 5, returns First(5)
+   * ```
    */
-  export const tap = <A>(f: (a: A) => void) => <E>(data: These<E, A>): These<E, A> => {
-    if (hasValue(data)) f(data.value);
+  export const tap = <A>(f: (a: A) => void) => <B>(data: These<A, B>): These<A, B> => {
+    if (hasFirst(data)) f(data.first);
     return data;
   };
 
   /**
-   * Swaps the roles of error and success values.
-   * - Err(e)      → Ok(e)
-   * - Ok(a)       → Err(a)
-   * - Both(e, a)  → Both(a, e)
+   * Swaps the roles of first and second values.
+   * - First(a)    → Second(a)
+   * - Second(b)   → First(b)
+   * - Both(a, b)  → Both(b, a)
    *
    * @example
    * ```ts
-   * These.swap(These.err("err"));        // Ok("err")
-   * These.swap(These.ok(5));             // Err(5)
-   * These.swap(These.both("warn", 5));   // Both(5, "warn")
+   * These.swap(These.first(5));           // Second(5)
+   * These.swap(These.second("warn"));     // First("warn")
+   * These.swap(These.both(5, "warn"));    // Both("warn", 5)
    * ```
    */
-  export const swap = <E, A>(data: These<E, A>): These<A, E> => {
-    if (isErr(data)) return ok(data.error);
-    if (isOk(data)) return err(data.value);
-    return both(data.value, data.error);
+  export const swap = <A, B>(data: These<A, B>): These<B, A> => {
+    if (isSecond(data)) return first(data.second);
+    if (isFirst(data)) return second(data.first);
+    return both(data.second, data.first);
   };
 
   /**
    * Converts a These to an Option.
-   * Ok and Both produce Some; Err produces None.
+   * First and Both produce Some; Second produces None.
    *
    * @example
    * ```ts
-   * These.toOption(These.ok(42));          // Some(42)
-   * These.toOption(These.both("warn", 42)); // Some(42)
-   * These.toOption(These.err("err"));       // None
+   * These.toOption(These.first(42));           // Some(42)
+   * These.toOption(These.both(42, "warn"));    // Some(42)
+   * These.toOption(These.second("warn"));      // None
    * ```
    */
-  export const toOption = <E, A>(
-    data: These<E, A>,
+  export const toOption = <A, B>(
+    data: These<A, B>,
   ): import("./Option.ts").Option<A> =>
-    hasValue(data) ? { kind: "Some", value: data.value } : { kind: "None" };
-
-  /**
-   * Converts a These to a Result, discarding any warning from Both.
-   * Ok and Both produce Ok; Err produces Err.
-   *
-   * @example
-   * ```ts
-   * These.toResult(These.ok(42));           // Ok(42)
-   * These.toResult(These.both("warn", 42)); // Ok(42)
-   * These.toResult(These.err("err"));       // Err("err")
-   * ```
-   */
-  export const toResult = <E, A>(data: These<E, A>): Result<E, A> => {
-    if (hasValue(data)) return Result.ok(data.value);
-    return data as Err<E>;
-  };
+    hasFirst(data) ? { kind: "Some", value: data.first } : { kind: "None" };
 }

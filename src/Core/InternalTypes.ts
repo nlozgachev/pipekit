@@ -7,3 +7,7 @@ export type WithValue<T> = { readonly value: T };
 export type WithError<T> = { readonly error: T };
 
 export type WithErrors<T> = { readonly errors: NonEmptyList<T> };
+
+export type WithFirst<T> = { readonly first: T };
+
+export type WithSecond<T> = { readonly second: T };
