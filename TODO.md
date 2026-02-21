@@ -19,8 +19,6 @@
 
 ## Task Utilities
 
-- [ ] `retry` -- re-run a `Task`/`TaskResult` on failure with configurable attempts and backoff
-- [ ] `timeout` -- fail a `Task`/`TaskResult` if it doesn't resolve within a given time
 - [ ] `race` -- resolve with the first of several tasks to complete
 - [ ] `sequential` -- run an array of tasks one at a time, collecting results
 

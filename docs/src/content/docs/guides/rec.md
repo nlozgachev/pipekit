@@ -3,20 +3,22 @@ title: Rec — record utilities
 description: Object operations that compose with pipe, with safe key lookup returning Option.
 ---
 
-Plain JavaScript objects used as maps — `Record<string, A>` — are one of the most common data structures in any TypeScript codebase. `Rec` is a small collection of utilities for working with them in pipelines: data-last, curried, and returning `Option` wherever a key might not exist.
+Plain JavaScript objects used as maps — `Record<string, A>` — are one of the most common data
+structures in any TypeScript codebase. `Rec` is a small collection of utilities for working with
+them in pipelines: data-last, curried, and returning `Option` wherever a key might not exist.
 
 ## Safe lookup
 
 `Rec.lookup` retrieves a value by key and returns `Option` to make the absence explicit:
 
 ```ts
-import { Rec, Option } from "@nlozgachev/pipekit/Core";
+import { Option, Rec } from "@nlozgachev/pipekit/Core";
 import { pipe } from "@nlozgachev/pipekit/Composition";
 
 const settings = { theme: "dark", lang: "en" };
 
 pipe(settings, Rec.lookup("theme")); // Some("dark")
-pipe(settings, Rec.lookup("font"));  // None — not undefined
+pipe(settings, Rec.lookup("font")); // None — not undefined
 ```
 
 This composes naturally with `Option` operations:
@@ -24,8 +26,8 @@ This composes naturally with `Option` operations:
 ```ts
 pipe(
   config,
-  Rec.lookup("timeout"),           // Option<string>
-  Option.chain(parseNumber),       // Option<number>
+  Rec.lookup("timeout"), // Option<string>
+  Option.chain(parseNumber), // Option<number>
   Option.getOrElse(30_000),
 );
 ```
@@ -78,7 +80,8 @@ pipe({ a: 1, b: 2, c: 3 }, Rec.pick("a", "c")); // { a: 1, c: 3 }
 pipe({ a: 1, b: 2, c: 3 }, Rec.omit("b")); // { a: 1, c: 3 }
 ```
 
-Both are type-safe: `pick` returns `Pick<A, K>` and `omit` returns `Omit<A, K>`, so the resulting type reflects exactly which keys are present.
+Both are type-safe: `pick` returns `Pick<A, K>` and `omit` returns `Omit<A, K>`, so the resulting
+type reflects exactly which keys are present.
 
 ## Merging
 
@@ -96,8 +99,8 @@ pipe(
 ```ts
 const rec = { x: 10, y: 20 };
 
-Rec.keys(rec);    // ["x", "y"]
-Rec.values(rec);  // [10, 20]
+Rec.keys(rec); // ["x", "y"]
+Rec.values(rec); // [10, 20]
 Rec.entries(rec); // [["x", 10], ["y", 20]]
 ```
 
@@ -107,7 +110,8 @@ Rec.entries(rec); // [["x", 10], ["y", 20]]
 Rec.fromEntries([["a", 1], ["b", 2]]); // { a: 1, b: 2 }
 ```
 
-`entries` and `fromEntries` pair well when you want to transform both keys and values by converting to entries, mapping, and converting back:
+`entries` and `fromEntries` pair well when you want to transform both keys and values by converting
+to entries, mapping, and converting back:
 
 ```ts
 pipe(
@@ -122,7 +126,7 @@ pipe(
 
 ```ts
 Rec.isEmpty({ a: 1 }); // false
-Rec.isEmpty({});        // true
+Rec.isEmpty({}); // true
 Rec.size({ a: 1, b: 2 }); // 2
 ```
 
