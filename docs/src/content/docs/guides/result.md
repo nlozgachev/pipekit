@@ -55,7 +55,6 @@ through unchanged to `getOrElse`, which provides the fallback. No try/catch. No 
 ```ts
 Result.ok(42); // Ok(42)  — a successful result
 Result.err("not found"); // Err("not found") — a failure
-Result.ok(42); // Ok(42)  — alias for ok
 ```
 
 The error type in `Result<E, A>` can be anything — a string, a discriminated union, an Error object.

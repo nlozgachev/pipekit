@@ -18,7 +18,7 @@ import { Arr, Option } from "@nlozgachev/pipekit/Core";
 import { pipe } from "@nlozgachev/pipekit/Composition";
 
 Arr.head([1, 2, 3]); // Some(1)
-Arr.head([]); // None — not undefined
+Arr.head([]); // None
 
 Arr.last([1, 2, 3]); // Some(3)
 Arr.last([]); // None

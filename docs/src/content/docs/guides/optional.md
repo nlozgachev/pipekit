@@ -37,11 +37,11 @@ import { pipe } from "@nlozgachev/pipekit/Composition";
 
 type User = { name: string; address?: { city: string; zip: string } };
 
-const cityOpt = Optional.prop<User>()("address");
+const addressOpt = Optional.prop<User>()("address");
 
-pipe(user, Optional.get(cityOpt));         // Some({ city: "Berlin", zip: "10115" }) or None
-pipe(user, Optional.set(cityOpt)(newAddr)); // new User with address replaced, or unchanged if absent
-pipe(user, Optional.modify(cityOpt)(a => ({ ...a, city: "Hamburg" }))); // update if present, skip if not
+pipe(user, Optional.get(addressOpt));         // Some({ city: "Berlin", zip: "10115" }) or None
+pipe(user, Optional.set(addressOpt)(newAddr)); // new User with address replaced, or unchanged if absent
+pipe(user, Optional.modify(addressOpt)(a => ({ ...a, city: "Hamburg" }))); // update if present, skip if not
 ```
 
 No conditional. The absent case is handled by the Optional itself.

@@ -52,7 +52,6 @@ RemoteData.notAsked(); // NotAsked — no fetch triggered yet
 RemoteData.loading(); // Loading  — fetch in progress
 RemoteData.failure("Not found"); // Failure  — fetch failed with an error
 RemoteData.success(user); // Success  — fetch succeeded with a value
-RemoteData.success(user); // Success  — alias for success
 ```
 
 ## Rendering all four states with `match`

@@ -114,9 +114,9 @@ Each step waits for the previous one to resolve before starting.
 
 ```ts
 const [config, locale, theme] = await Task.all([
-  loadConfig(),
-  detectLocale(),
-  loadTheme(userId),
+  loadConfig,
+  detectLocale,
+  () => loadTheme(userId),
 ])();
 ```
 
