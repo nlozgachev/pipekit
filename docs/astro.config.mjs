@@ -12,12 +12,23 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "@nlozgachev/pipekit",
+      favicon: "./public/favicon.svg",
       customCss: ["./src/styles/custom.css"],
       social: [
         {
           icon: "github",
           label: "GitHub",
           href: "https://github.com/nlozgachev/pipekit",
+        },
+        {
+          icon: "npm",
+          label: "npm",
+          href: "https://www.npmjs.com/package/@nlozgachev/pipekit",
+        },
+        {
+          icon: "jsr",
+          label: "JSR",
+          href: "https://jsr.io/@nlozgachev/pipekit",
         },
       ],
       plugins: [
