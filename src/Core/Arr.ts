@@ -342,7 +342,7 @@ export namespace Arr {
    * ```ts
    * const parseNum = (s: string): Option<number> => {
    *   const n = Number(s);
-   *   return isNaN(n) ? Option.none() : Option.of(n);
+   *   return isNaN(n) ? Option.none() : Option.some(n);
    * };
    *
    * pipe(["1", "2", "3"], Arr.traverse(parseNum)); // Some([1, 2, 3])
@@ -390,7 +390,7 @@ export namespace Arr {
    * ```ts
    * pipe(
    *   [1, 2, 3],
-   *   Arr.traverseTask(n => Task.of(n * 2))
+   *   Arr.traverseTask(n => Task.resolve(n * 2))
    * )(); // Promise<[2, 4, 6]>
    * ```
    */
@@ -404,8 +404,8 @@ export namespace Arr {
    *
    * @example
    * ```ts
-   * Arr.sequence([Option.of(1), Option.of(2)]); // Some([1, 2])
-   * Arr.sequence([Option.of(1), Option.none()]); // None
+   * Arr.sequence([Option.some(1), Option.some(2)]); // Some([1, 2])
+   * Arr.sequence([Option.some(1), Option.none()]); // None
    * ```
    */
   export const sequence = <A>(

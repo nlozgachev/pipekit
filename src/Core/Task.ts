@@ -26,15 +26,15 @@ export type Task<A> = () => Promise<A>;
 
 export namespace Task {
   /**
-   * Wraps a value in a Task that immediately resolves to that value.
+   * Creates a Task that immediately resolves to the given value.
    *
    * @example
    * ```ts
-   * const task = Task.of(42);
+   * const task = Task.resolve(42);
    * task().then(console.log); // 42
    * ```
    */
-  export const of = <A>(value: A): Task<A> => () => Promise.resolve(value);
+  export const resolve = <A>(value: A): Task<A> => () => Promise.resolve(value);
 
   /**
    * Creates a Task from a function that returns a Promise.
@@ -53,7 +53,7 @@ export namespace Task {
    * @example
    * ```ts
    * pipe(
-   *   Task.of(5),
+   *   Task.resolve(5),
    *   Task.map(n => n * 2)
    * )(); // Promise<10>
    * ```
@@ -85,9 +85,9 @@ export namespace Task {
    * ```ts
    * const add = (a: number) => (b: number) => a + b;
    * pipe(
-   *   Task.of(add),
-   *   Task.ap(Task.of(5)),
-   *   Task.ap(Task.of(3))
+   *   Task.resolve(add),
+   *   Task.ap(Task.resolve(5)),
+   *   Task.ap(Task.resolve(3))
    * )(); // Promise<8>
    * ```
    */
@@ -127,7 +127,9 @@ export namespace Task {
   ): Task<{ [K in keyof T]: T[K] extends Task<infer A> ? A : never }> =>
   () =>
     Promise.all(tasks.map((t) => t())) as Promise<
-      { [K in keyof T]: T[K] extends Task<infer A> ? A : never }
+      {
+        [K in keyof T]: T[K] extends Task<infer A> ? A : never;
+      }
     >;
 
   /**
@@ -137,7 +139,7 @@ export namespace Task {
    * @example
    * ```ts
    * pipe(
-   *   Task.of(42),
+   *   Task.resolve(42),
    *   Task.delay(1000)
    * )(); // Resolves after 1 second
    * ```
@@ -158,9 +160,7 @@ export namespace Task {
    * ```
    */
   export const repeat =
-    (options: { times: number; delay?: number }) =>
-    <A>(task: Task<A>): Task<A[]> =>
-    () => {
+    (options: { times: number; delay?: number }) => <A>(task: Task<A>): Task<A[]> => () => {
       const { times, delay: ms } = options;
       if (times <= 0) return Promise.resolve([]);
       const results: A[] = [];
@@ -188,9 +188,7 @@ export namespace Task {
    * ```
    */
   export const repeatUntil =
-    <A>(options: { when: (a: A) => boolean; delay?: number }) =>
-    (task: Task<A>): Task<A> =>
-    () => {
+    <A>(options: { when: (a: A) => boolean; delay?: number }) => (task: Task<A>): Task<A> => () => {
       const { when: predicate, delay: ms } = options;
       const wait = (): Promise<void> =>
         ms !== undefined && ms > 0 ? new Promise((r) => setTimeout(r, ms)) : Promise.resolve();
@@ -216,12 +214,13 @@ export namespace Task {
    * ```
    */
   export const timeout =
-    <E>(ms: number, onTimeout: () => E) =>
-    <A>(task: Task<A>): Task<Result<E, A>> =>
-    () => {
+    <E>(ms: number, onTimeout: () => E) => <A>(task: Task<A>): Task<Result<E, A>> => () => {
       let timerId: ReturnType<typeof setTimeout>;
       return Promise.race([
-        task().then((a): Result<E, A> => { clearTimeout(timerId); return Result.ok(a); }),
+        task().then((a): Result<E, A> => {
+          clearTimeout(timerId);
+          return Result.ok(a);
+        }),
         new Promise<Result<E, A>>((resolve) => {
           timerId = setTimeout(() => resolve(Result.err(onTimeout())), ms);
         }),

@@ -1,7 +1,4 @@
-import {
-  assertEquals,
-  assertStrictEquals,
-} from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assertEquals, assertStrictEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { Option } from "../Option.ts";
 import { Result } from "../Result.ts";
 import { pipe } from "../../Composition/pipe.ts";
@@ -10,8 +7,8 @@ import { pipe } from "../../Composition/pipe.ts";
 // of / some
 // ---------------------------------------------------------------------------
 
-Deno.test("Option.of wraps a value in Some", () => {
-  const result = Option.of(42);
+Deno.test("Option.some wraps a value in Some", () => {
+  const result = Option.some(42);
   assertEquals(result, { kind: "Some", value: 42 });
 });
 
@@ -20,8 +17,8 @@ Deno.test("Option.some creates a Some with the given value", () => {
   assertEquals(result, { kind: "Some", value: "hello" });
 });
 
-Deno.test("Option.of and Option.some produce the same result", () => {
-  assertEquals(Option.of(10), Option.some(10));
+Deno.test("Option.some and Option.some produce the same result", () => {
+  assertEquals(Option.some(10), Option.some(10));
 });
 
 // ---------------------------------------------------------------------------
@@ -29,7 +26,7 @@ Deno.test("Option.of and Option.some produce the same result", () => {
 // ---------------------------------------------------------------------------
 
 Deno.test("Option.isSome returns true for Some", () => {
-  assertStrictEquals(Option.isSome(Option.of(1)), true);
+  assertStrictEquals(Option.isSome(Option.some(1)), true);
 });
 
 Deno.test("Option.isSome returns false for None", () => {
@@ -49,7 +46,7 @@ Deno.test("Option.isNone returns true for None", () => {
 });
 
 Deno.test("Option.isNone returns false for Some", () => {
-  assertStrictEquals(Option.isNone(Option.of(1)), false);
+  assertStrictEquals(Option.isNone(Option.some(1)), false);
 });
 
 // ---------------------------------------------------------------------------
@@ -99,7 +96,7 @@ Deno.test("Option.fromNullable returns Some for an object", () => {
 // ---------------------------------------------------------------------------
 
 Deno.test("Option.toNullable returns the value for Some", () => {
-  assertStrictEquals(Option.toNullable(Option.of(42)), 42);
+  assertStrictEquals(Option.toNullable(Option.some(42)), 42);
 });
 
 Deno.test("Option.toNullable returns null for None", () => {
@@ -111,7 +108,7 @@ Deno.test("Option.toNullable returns null for None", () => {
 // ---------------------------------------------------------------------------
 
 Deno.test("Option.toUndefined returns the value for Some", () => {
-  assertStrictEquals(Option.toUndefined(Option.of(42)), 42);
+  assertStrictEquals(Option.toUndefined(Option.some(42)), 42);
 });
 
 Deno.test("Option.toUndefined returns undefined for None", () => {
@@ -143,7 +140,7 @@ Deno.test("Option.fromUndefined returns Some for a value", () => {
 
 Deno.test("Option.toResult converts Some to Ok", () => {
   const result = pipe(
-    Option.of(42),
+    Option.some(42),
     Option.toResult(() => "missing"),
   );
   assertEquals(result, { kind: "Ok", value: 42 });
@@ -162,7 +159,7 @@ Deno.test(
   () => {
     let called = false;
     pipe(
-      Option.of(10),
+      Option.some(10),
       Option.toResult(() => {
         called = true;
         return "error";
@@ -192,7 +189,7 @@ Deno.test("Option.fromResult converts Err to None", () => {
 
 Deno.test("Option.map transforms the value inside Some", () => {
   const result = pipe(
-    Option.of(5),
+    Option.some(5),
     Option.map((n: number) => n * 2),
   );
   assertEquals(result, { kind: "Some", value: 10 });
@@ -208,7 +205,7 @@ Deno.test("Option.map passes through None unchanged", () => {
 
 Deno.test("Option.map can change the type", () => {
   const result = pipe(
-    Option.of(5),
+    Option.some(5),
     Option.map((n: number) => String(n)),
   );
   assertEquals(result, { kind: "Some", value: "5" });
@@ -221,18 +218,18 @@ Deno.test("Option.map can change the type", () => {
 Deno.test("Option.chain applies function when Some", () => {
   const parseNumber = (s: string): Option<number> => {
     const n = parseInt(s, 10);
-    return isNaN(n) ? Option.none() : Option.of(n);
+    return isNaN(n) ? Option.none() : Option.some(n);
   };
-  const result = pipe(Option.of("42"), Option.chain(parseNumber));
+  const result = pipe(Option.some("42"), Option.chain(parseNumber));
   assertEquals(result, { kind: "Some", value: 42 });
 });
 
 Deno.test("Option.chain returns None when function returns None", () => {
   const parseNumber = (s: string): Option<number> => {
     const n = parseInt(s, 10);
-    return isNaN(n) ? Option.none() : Option.of(n);
+    return isNaN(n) ? Option.none() : Option.some(n);
   };
-  const result = pipe(Option.of("abc"), Option.chain(parseNumber));
+  const result = pipe(Option.some("abc"), Option.chain(parseNumber));
   assertEquals(result, { kind: "None" });
 });
 
@@ -242,7 +239,7 @@ Deno.test("Option.chain propagates None without calling function", () => {
     Option.none() as Option<string>,
     Option.chain((_s: string) => {
       called = true;
-      return Option.of(1);
+      return Option.some(1);
     }),
   );
   assertStrictEquals(called, false);
@@ -254,7 +251,7 @@ Deno.test("Option.chain propagates None without calling function", () => {
 
 Deno.test("Option.fold calls onSome for Some", () => {
   const result = pipe(
-    Option.of(5),
+    Option.some(5),
     Option.fold(
       () => "none",
       (n: number) => `value: ${n}`,
@@ -280,7 +277,7 @@ Deno.test("Option.fold calls onNone for None", () => {
 
 Deno.test("Option.match calls some handler for Some", () => {
   const result = pipe(
-    Option.of(5),
+    Option.some(5),
     Option.match({
       some: (n: number) => `got ${n}`,
       none: () => "nothing",
@@ -305,7 +302,7 @@ Deno.test("Option.match is data-last (returns a function first)", () => {
     some: (n) => `val: ${n}`,
     none: () => "empty",
   });
-  assertStrictEquals(handler(Option.of(3)), "val: 3");
+  assertStrictEquals(handler(Option.some(3)), "val: 3");
   assertStrictEquals(handler(Option.none()), "empty");
 });
 
@@ -314,7 +311,7 @@ Deno.test("Option.match is data-last (returns a function first)", () => {
 // ---------------------------------------------------------------------------
 
 Deno.test("Option.getOrElse returns value for Some", () => {
-  const result = pipe(Option.of(5), Option.getOrElse(0));
+  const result = pipe(Option.some(5), Option.getOrElse(0));
   assertStrictEquals(result, 5);
 });
 
@@ -332,7 +329,7 @@ Deno.test(
   () => {
     let sideEffect = 0;
     const result = pipe(
-      Option.of(5),
+      Option.some(5),
       Option.tap((n: number) => {
         sideEffect = n;
       }),
@@ -360,7 +357,7 @@ Deno.test("Option.tap does not execute side effect on None", () => {
 
 Deno.test("Option.filter keeps Some when predicate is true", () => {
   const result = pipe(
-    Option.of(5),
+    Option.some(5),
     Option.filter((n: number) => n > 3),
   );
   assertEquals(result, { kind: "Some", value: 5 });
@@ -368,7 +365,7 @@ Deno.test("Option.filter keeps Some when predicate is true", () => {
 
 Deno.test("Option.filter returns None when predicate is false", () => {
   const result = pipe(
-    Option.of(2),
+    Option.some(2),
     Option.filter((n: number) => n > 3),
   );
   assertEquals(result, { kind: "None" });
@@ -391,10 +388,10 @@ Deno.test(
   () => {
     let called = false;
     const result = pipe(
-      Option.of(5),
+      Option.some(5),
       Option.recover(() => {
         called = true;
-        return Option.of(99);
+        return Option.some(99);
       }),
     );
     assertStrictEquals(called, false);
@@ -405,7 +402,7 @@ Deno.test(
 Deno.test("Option.recover provides fallback for None", () => {
   const result = pipe(
     Option.none() as Option<number>,
-    Option.recover(() => Option.of(99)),
+    Option.recover(() => Option.some(99)),
   );
   assertEquals(result, { kind: "Some", value: 99 });
 });
@@ -425,9 +422,9 @@ Deno.test("Option.recover can return None as fallback", () => {
 Deno.test("Option.ap applies Some function to Some value", () => {
   const add = (a: number) => (b: number) => a + b;
   const result = pipe(
-    Option.of(add),
-    Option.ap(Option.of(5)),
-    Option.ap(Option.of(3)),
+    Option.some(add),
+    Option.ap(Option.some(5)),
+    Option.ap(Option.some(3)),
   );
   assertEquals(result, { kind: "Some", value: 8 });
 });
@@ -435,14 +432,14 @@ Deno.test("Option.ap applies Some function to Some value", () => {
 Deno.test("Option.ap returns None when function is None", () => {
   const result = pipe(
     Option.none() as Option<(a: number) => number>,
-    Option.ap(Option.of(5)),
+    Option.ap(Option.some(5)),
   );
   assertEquals(result, { kind: "None" });
 });
 
 Deno.test("Option.ap returns None when value is None", () => {
   const result = pipe(
-    Option.of((n: number) => n * 2),
+    Option.some((n: number) => n * 2),
     Option.ap(Option.none() as Option<number>),
   );
   assertEquals(result, { kind: "None" });

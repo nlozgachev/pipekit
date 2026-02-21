@@ -6,20 +6,26 @@ import { pipe } from "../../Composition/pipe.ts";
 // of
 // ---------------------------------------------------------------------------
 
-Deno.test("Task.of creates a Task that resolves to the given value", async () => {
-  const result = await Task.of(42)();
-  assertStrictEquals(result, 42);
-});
+Deno.test(
+  "Task.resolve creates a Task that resolves to the given value",
+  async () => {
+    const result = await Task.resolve(42)();
+    assertStrictEquals(result, 42);
+  },
+);
 
 // ---------------------------------------------------------------------------
 // from
 // ---------------------------------------------------------------------------
 
-Deno.test("Task.from creates a Task from a function returning a Promise", async () => {
-  const task = Task.from(() => Promise.resolve(99));
-  const result = await task();
-  assertStrictEquals(result, 99);
-});
+Deno.test(
+  "Task.from creates a Task from a function returning a Promise",
+  async () => {
+    const task = Task.from(() => Promise.resolve(99));
+    const result = await task();
+    assertStrictEquals(result, 99);
+  },
+);
 
 Deno.test("Task.from is lazy - does not execute until called", async () => {
   let executed = false;
@@ -38,7 +44,7 @@ Deno.test("Task.from is lazy - does not execute until called", async () => {
 
 Deno.test("Task.map transforms the resolved value", async () => {
   const result = await pipe(
-    Task.of(5),
+    Task.resolve(5),
     Task.map((n: number) => n * 2),
   )();
   assertStrictEquals(result, 10);
@@ -46,7 +52,7 @@ Deno.test("Task.map transforms the resolved value", async () => {
 
 Deno.test("Task.map can change the type", async () => {
   const result = await pipe(
-    Task.of(42),
+    Task.resolve(42),
     Task.map((n: number) => `num: ${n}`),
   )();
   assertStrictEquals(result, "num: 42");
@@ -54,7 +60,7 @@ Deno.test("Task.map can change the type", async () => {
 
 Deno.test("Task.map chains multiple transformations", async () => {
   const result = await pipe(
-    Task.of(2),
+    Task.resolve(2),
     Task.map((n: number) => n + 3),
     Task.map((n: number) => n * 10),
   )();
@@ -66,26 +72,26 @@ Deno.test("Task.map chains multiple transformations", async () => {
 // ---------------------------------------------------------------------------
 
 Deno.test("Task.chain sequences async computations", async () => {
-  const double = (n: number): Task<number> => Task.of(n * 2);
-  const result = await pipe(Task.of(5), Task.chain(double))();
+  const double = (n: number): Task<number> => Task.resolve(n * 2);
+  const result = await pipe(Task.resolve(5), Task.chain(double))();
   assertStrictEquals(result, 10);
 });
 
-Deno.test("Task.chain can create new Tasks based on previous result", async () => {
-  const fetchById = (id: number): Task<string> => Task.of(`item-${id}`);
+Deno.test(
+  "Task.chain can create new Tasks based on previous result",
+  async () => {
+    const fetchById = (id: number): Task<string> => Task.resolve(`item-${id}`);
 
-  const result = await pipe(
-    Task.of(42),
-    Task.chain(fetchById),
-  )();
-  assertStrictEquals(result, "item-42");
-});
+    const result = await pipe(Task.resolve(42), Task.chain(fetchById))();
+    assertStrictEquals(result, "item-42");
+  },
+);
 
 Deno.test("Task.chain composes multiple async steps", async () => {
   const result = await pipe(
-    Task.of(1),
-    Task.chain((n: number) => Task.of(n + 1)),
-    Task.chain((n: number) => Task.of(n * 10)),
+    Task.resolve(1),
+    Task.chain((n: number) => Task.resolve(n + 1)),
+    Task.chain((n: number) => Task.resolve(n * 10)),
   )();
   assertStrictEquals(result, 20);
 });
@@ -97,9 +103,9 @@ Deno.test("Task.chain composes multiple async steps", async () => {
 Deno.test("Task.ap applies a Task function to a Task value", async () => {
   const add = (a: number) => (b: number) => a + b;
   const result = await pipe(
-    Task.of(add),
-    Task.ap(Task.of(5)),
-    Task.ap(Task.of(3)),
+    Task.resolve(add),
+    Task.ap(Task.resolve(5)),
+    Task.ap(Task.resolve(3)),
   )();
   assertStrictEquals(result, 8);
 });
@@ -121,10 +127,7 @@ Deno.test("Task.ap runs Tasks in parallel", async () => {
 
 Deno.test("Task.ap with single argument function", async () => {
   const double = (n: number) => n * 2;
-  const result = await pipe(
-    Task.of(double),
-    Task.ap(Task.of(7)),
-  )();
+  const result = await pipe(Task.resolve(double), Task.ap(Task.resolve(7)))();
   assertStrictEquals(result, 14);
 });
 
@@ -132,21 +135,24 @@ Deno.test("Task.ap with single argument function", async () => {
 // tap
 // ---------------------------------------------------------------------------
 
-Deno.test("Task.tap executes side effect and returns original value", async () => {
-  let sideEffect = 0;
-  const result = await pipe(
-    Task.of(5),
-    Task.tap((n: number) => {
-      sideEffect = n;
-    }),
-  )();
-  assertStrictEquals(sideEffect, 5);
-  assertStrictEquals(result, 5);
-});
+Deno.test(
+  "Task.tap executes side effect and returns original value",
+  async () => {
+    let sideEffect = 0;
+    const result = await pipe(
+      Task.resolve(5),
+      Task.tap((n: number) => {
+        sideEffect = n;
+      }),
+    )();
+    assertStrictEquals(sideEffect, 5);
+    assertStrictEquals(result, 5);
+  },
+);
 
 Deno.test("Task.tap does not alter the resolved value", async () => {
   const result = await pipe(
-    Task.of("hello"),
+    Task.resolve("hello"),
     Task.tap(() => {
       // side effect that doesn't affect the value
     }),
@@ -159,29 +165,37 @@ Deno.test("Task.tap does not alter the resolved value", async () => {
 // all
 // ---------------------------------------------------------------------------
 
-Deno.test("Task.all runs multiple Tasks in parallel and collects results", async () => {
-  const result = await Task.all(
-    [
-      Task.of(1),
-      Task.of("two"),
-      Task.of(true),
-    ] as const,
-  )();
-  assertEquals(result, [1, "two", true]);
-});
+Deno.test(
+  "Task.all runs multiple Tasks in parallel and collects results",
+  async () => {
+    const result = await Task.all(
+      [
+        Task.resolve(1),
+        Task.resolve("two"),
+        Task.resolve(true),
+      ] as const,
+    )();
+    assertEquals(result, [1, "two", true]);
+  },
+);
 
 Deno.test("Task.all with empty array returns empty array", async () => {
   const result = await Task.all([] as const)();
   assertEquals(result, []);
 });
 
-Deno.test("Task.all preserves order regardless of completion time", async () => {
-  const slow: Task<string> = () => new Promise((resolve) => setTimeout(() => resolve("slow"), 50));
-  const fast: Task<string> = () => new Promise((resolve) => setTimeout(() => resolve("fast"), 10));
+Deno.test(
+  "Task.all preserves order regardless of completion time",
+  async () => {
+    const slow: Task<string> = () =>
+      new Promise((resolve) => setTimeout(() => resolve("slow"), 50));
+    const fast: Task<string> = () =>
+      new Promise((resolve) => setTimeout(() => resolve("fast"), 10));
 
-  const result = await Task.all([slow, fast] as const)();
-  assertEquals(result, ["slow", "fast"]);
-});
+    const result = await Task.all([slow, fast] as const)();
+    assertEquals(result, ["slow", "fast"]);
+  },
+);
 
 Deno.test("Task.all runs Tasks in parallel (not sequentially)", async () => {
   const start = Date.now();
@@ -203,7 +217,7 @@ Deno.test("Task.all runs Tasks in parallel (not sequentially)", async () => {
 
 Deno.test("Task.delay delays the execution of a Task", async () => {
   const start = Date.now();
-  const result = await pipe(Task.of(42), Task.delay(50))();
+  const result = await pipe(Task.resolve(42), Task.delay(50))();
   const elapsed = Date.now() - start;
 
   assertStrictEquals(result, 42);
@@ -211,13 +225,13 @@ Deno.test("Task.delay delays the execution of a Task", async () => {
 });
 
 Deno.test("Task.delay with 0ms behaves like setTimeout(fn, 0)", async () => {
-  const result = await pipe(Task.of("instant"), Task.delay(0))();
+  const result = await pipe(Task.resolve("instant"), Task.delay(0))();
   assertStrictEquals(result, "instant");
 });
 
 Deno.test("Task.delay preserves the Task value after delay", async () => {
   const result = await pipe(
-    Task.of(5),
+    Task.resolve(5),
     Task.delay(30),
     Task.map((n: number) => n * 2),
   )();
@@ -230,9 +244,9 @@ Deno.test("Task.delay preserves the Task value after delay", async () => {
 
 Deno.test("Task composes well in a pipe chain", async () => {
   const result = await pipe(
-    Task.of(5),
+    Task.resolve(5),
     Task.map((n: number) => n * 2),
-    Task.chain((n: number) => Task.of(n + 1)),
+    Task.chain((n: number) => Task.resolve(n + 1)),
     Task.map((n: number) => `result: ${n}`),
   )();
   assertStrictEquals(result, "result: 11");
@@ -241,7 +255,7 @@ Deno.test("Task composes well in a pipe chain", async () => {
 Deno.test("Task is lazy and only executes when invoked", () => {
   let executed = false;
   const _task = pipe(
-    Task.of(1),
+    Task.resolve(1),
     Task.map((_n: number) => {
       executed = true;
       return _n;
@@ -256,21 +270,29 @@ Deno.test("Task is lazy and only executes when invoked", () => {
 // timeout
 // ---------------------------------------------------------------------------
 
-Deno.test("Task.timeout returns Ok when task resolves before timeout", async () => {
-  const result = await pipe(
-    Task.of(42),
-    Task.timeout(100, () => "timed out"),
-  )();
-  assertEquals(result, { kind: "Ok", value: 42 });
-});
+Deno.test(
+  "Task.timeout returns Ok when task resolves before timeout",
+  async () => {
+    const result = await pipe(
+      Task.resolve(42),
+      Task.timeout(100, () => "timed out"),
+    )();
+    assertEquals(result, { kind: "Ok", value: 42 });
+  },
+);
 
 Deno.test({
   name: "Task.timeout returns Err when task exceeds timeout",
   sanitizeOps: false,
   sanitizeResources: false,
   fn: async () => {
-    const slow = Task.from<number>(() => new Promise((r) => setTimeout(() => r(42), 200)));
-    const result = await pipe(slow, Task.timeout(10, () => "timed out"))();
+    const slow = Task.from<number>(
+      () => new Promise((r) => setTimeout(() => r(42), 200)),
+    );
+    const result = await pipe(
+      slow,
+      Task.timeout(10, () => "timed out"),
+    )();
     assertEquals(result, { kind: "Error", error: "timed out" });
   },
 });
@@ -280,9 +302,14 @@ Deno.test({
   sanitizeOps: false,
   sanitizeResources: false,
   fn: async () => {
-    const slow = Task.from<number>(() => new Promise((r) => setTimeout(() => r(42), 200)));
+    const slow = Task.from<number>(
+      () => new Promise((r) => setTimeout(() => r(42), 200)),
+    );
     const error = new Error("request timed out");
-    const result = await pipe(slow, Task.timeout(10, () => error))();
+    const result = await pipe(
+      slow,
+      Task.timeout(10, () => error),
+    )();
     assertEquals(result, { kind: "Error", error });
   },
 });
@@ -293,24 +320,36 @@ Deno.test({
 
 Deno.test("Task.repeat runs the task the given number of times", async () => {
   let calls = 0;
-  const task = Task.from(() => { calls++; return Promise.resolve(calls); });
+  const task = Task.from(() => {
+    calls++;
+    return Promise.resolve(calls);
+  });
   const result = await pipe(task, Task.repeat({ times: 3 }))();
   assertEquals(result, [1, 2, 3]);
   assertStrictEquals(calls, 3);
 });
 
-Deno.test("Task.repeat with times: 1 runs once and returns single-element array", async () => {
-  const result = await pipe(Task.of(42), Task.repeat({ times: 1 }))();
-  assertEquals(result, [42]);
-});
+Deno.test(
+  "Task.repeat with times: 1 runs once and returns single-element array",
+  async () => {
+    const result = await pipe(Task.resolve(42), Task.repeat({ times: 1 }))();
+    assertEquals(result, [42]);
+  },
+);
 
-Deno.test("Task.repeat with times: 0 returns empty array without running", async () => {
-  let calls = 0;
-  const task = Task.from(() => { calls++; return Promise.resolve(42); });
-  const result = await pipe(task, Task.repeat({ times: 0 }))();
-  assertEquals(result, []);
-  assertStrictEquals(calls, 0);
-});
+Deno.test(
+  "Task.repeat with times: 0 returns empty array without running",
+  async () => {
+    let calls = 0;
+    const task = Task.from(() => {
+      calls++;
+      return Promise.resolve(42);
+    });
+    const result = await pipe(task, Task.repeat({ times: 0 }))();
+    assertEquals(result, []);
+    assertStrictEquals(calls, 0);
+  },
+);
 
 Deno.test("Task.repeat collects results in order", async () => {
   let n = 0;
@@ -319,46 +358,70 @@ Deno.test("Task.repeat collects results in order", async () => {
   assertEquals(result, [0, 1, 2, 3]);
 });
 
-Deno.test("Task.repeat inserts delay between runs but not after the last", async () => {
-  const start = Date.now();
-  await pipe(Task.of(1), Task.repeat({ times: 3, delay: 30 }))();
-  const elapsed = Date.now() - start;
-  // 3 runs = 2 delays = ~60ms; allow generous bounds
-  assertStrictEquals(elapsed >= 50, true);
-  assertStrictEquals(elapsed < 120, true);
-});
+Deno.test(
+  "Task.repeat inserts delay between runs but not after the last",
+  async () => {
+    const start = Date.now();
+    await pipe(Task.resolve(1), Task.repeat({ times: 3, delay: 30 }))();
+    const elapsed = Date.now() - start;
+    // 3 runs = 2 delays = ~60ms; allow generous bounds
+    assertStrictEquals(elapsed >= 50, true);
+    assertStrictEquals(elapsed < 120, true);
+  },
+);
 
 // ---------------------------------------------------------------------------
 // repeatUntil
 // ---------------------------------------------------------------------------
 
-Deno.test("Task.repeatUntil returns immediately when predicate holds on first run", async () => {
-  let calls = 0;
-  const task = Task.from(() => { calls++; return Promise.resolve(42); });
-  const result = await pipe(task, Task.repeatUntil({ when: (n) => n === 42 }))();
-  assertStrictEquals(result, 42);
-  assertStrictEquals(calls, 1);
-});
+Deno.test(
+  "Task.repeatUntil returns immediately when predicate holds on first run",
+  async () => {
+    let calls = 0;
+    const task = Task.from(() => {
+      calls++;
+      return Promise.resolve(42);
+    });
+    const result = await pipe(
+      task,
+      Task.repeatUntil({ when: (n) => n === 42 }),
+    )();
+    assertStrictEquals(result, 42);
+    assertStrictEquals(calls, 1);
+  },
+);
 
 Deno.test("Task.repeatUntil keeps running until predicate holds", async () => {
   let calls = 0;
-  const task = Task.from(() => { calls++; return Promise.resolve(calls); });
+  const task = Task.from(() => {
+    calls++;
+    return Promise.resolve(calls);
+  });
   const result = await pipe(task, Task.repeatUntil({ when: (n) => n === 3 }))();
   assertStrictEquals(result, 3);
   assertStrictEquals(calls, 3);
 });
 
-Deno.test("Task.repeatUntil returns the value that satisfied the predicate", async () => {
-  const values = ["a", "b", "stop", "c"];
-  let i = 0;
-  const task = Task.from(() => Promise.resolve(values[i++]));
-  const result = await pipe(task, Task.repeatUntil({ when: (s) => s === "stop" }))();
-  assertStrictEquals(result, "stop");
-});
+Deno.test(
+  "Task.repeatUntil returns the value that satisfied the predicate",
+  async () => {
+    const values = ["a", "b", "stop", "c"];
+    let i = 0;
+    const task = Task.from(() => Promise.resolve(values[i++]));
+    const result = await pipe(
+      task,
+      Task.repeatUntil({ when: (s) => s === "stop" }),
+    )();
+    assertStrictEquals(result, "stop");
+  },
+);
 
 Deno.test("Task.repeatUntil inserts delay between runs", async () => {
   let calls = 0;
-  const task = Task.from(() => { calls++; return Promise.resolve(calls); });
+  const task = Task.from(() => {
+    calls++;
+    return Promise.resolve(calls);
+  });
   const start = Date.now();
   await pipe(task, Task.repeatUntil({ when: (n) => n === 3, delay: 30 }))();
   const elapsed = Date.now() - start;

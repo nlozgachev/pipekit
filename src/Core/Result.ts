@@ -23,24 +23,14 @@ export type Err<E> = WithKind<"Error"> & WithError<E>;
 
 export namespace Result {
   /**
-   * Wraps a value in a successful Result (Ok).
-   *
-   * @example
-   * ```ts
-   * Result.of(42); // Ok(42)
-   * ```
+   * Creates a successful Result with the given value.
    */
-  export const of = <E, A>(value: A): Result<E, A> => ok(value);
+  export const ok = <A>(value: A): Ok<A> => ({ kind: "Ok", value });
 
   /**
    * Creates a failed Result with the given error.
    */
   export const err = <E>(error: E): Err<E> => ({ kind: "Error", error });
-
-  /**
-   * Creates a successful Result with the given value.
-   */
-  export const ok = <A>(value: A): Ok<A> => ({ kind: "Ok", value });
 
   /**
    * Type guard that checks if an Result is Ok.
@@ -81,7 +71,7 @@ export namespace Result {
    *
    * @example
    * ```ts
-   * pipe(Result.of(5), Result.map(n => n * 2)); // Ok(10)
+   * pipe(Result.ok(5), Result.map(n => n * 2)); // Ok(10)
    * pipe(Result.err("error"), Result.map(n => n * 2)); // Err("error")
    * ```
    */
@@ -106,10 +96,10 @@ export namespace Result {
    * @example
    * ```ts
    * const validatePositive = (n: number): Result<string, number> =>
-   *   n > 0 ? Result.of(n) : Result.err("Must be positive");
+   *   n > 0 ? Result.ok(n) : Result.err("Must be positive");
    *
-   * pipe(Result.of(5), Result.chain(validatePositive)); // Ok(5)
-   * pipe(Result.of(-1), Result.chain(validatePositive)); // Err("Must be positive")
+   * pipe(Result.ok(5), Result.chain(validatePositive)); // Ok(5)
+   * pipe(Result.ok(-1), Result.chain(validatePositive)); // Err("Must be positive")
    * ```
    */
   export const chain = <E, A, B>(f: (a: A) => Result<E, B>) => (data: Result<E, A>): Result<E, B> =>
@@ -121,7 +111,7 @@ export namespace Result {
    * @example
    * ```ts
    * pipe(
-   *   Result.of(5),
+   *   Result.ok(5),
    *   Result.fold(
    *     e => `Error: ${e}`,
    *     n => `Value: ${n}`
@@ -155,7 +145,7 @@ export namespace Result {
    *
    * @example
    * ```ts
-   * pipe(Result.of(5), Result.getOrElse(0)); // 5
+   * pipe(Result.ok(5), Result.getOrElse(0)); // 5
    * pipe(Result.err("error"), Result.getOrElse(0)); // 0
    * ```
    */
@@ -169,7 +159,7 @@ export namespace Result {
    * @example
    * ```ts
    * pipe(
-   *   Result.of(5),
+   *   Result.ok(5),
    *   Result.tap(n => console.log("Value:", n)),
    *   Result.map(n => n * 2)
    * );
@@ -216,9 +206,9 @@ export namespace Result {
    * ```ts
    * const add = (a: number) => (b: number) => a + b;
    * pipe(
-   *   Result.of(add),
-   *   Result.ap(Result.of(5)),
-   *   Result.ap(Result.of(3))
+   *   Result.ok(add),
+   *   Result.ap(Result.ok(5)),
+   *   Result.ap(Result.ok(3))
    * ); // Ok(8)
    * ```
    */

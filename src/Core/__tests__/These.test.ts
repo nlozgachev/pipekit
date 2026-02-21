@@ -1,7 +1,4 @@
-import {
-  assertEquals,
-  assertStrictEquals,
-} from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assertEquals, assertStrictEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { Both, These } from "../These.ts";
 import { pipe } from "../../Composition/pipe.ts";
 
@@ -470,9 +467,7 @@ Deno.test("These composes well in a pipe chain", () => {
   const result = pipe(
     These.ok(5),
     These.map((n: number) => n * 2),
-    These.chain((n: number) =>
-      n > 5 ? These.ok(n) : These.err<string>("Too small"),
-    ),
+    These.chain((n: number) => n > 5 ? These.ok(n) : These.err<string>("Too small")),
     These.getOrElse(0),
   );
   assertStrictEquals(result, 10);

@@ -595,20 +595,12 @@ Deno.test("traverse - fails at first None and short-circuits", () => {
 });
 
 Deno.test("sequence - all Some results in Some of array", () => {
-  const result = Arr.sequence([
-    Option.some(1),
-    Option.some(2),
-    Option.some(3),
-  ]);
+  const result = Arr.sequence([Option.some(1), Option.some(2), Option.some(3)]);
   assertEquals(result, Option.some([1, 2, 3]));
 });
 
 Deno.test("sequence - any None results in None", () => {
-  const result = Arr.sequence([
-    Option.some(1),
-    Option.none(),
-    Option.some(3),
-  ]);
+  const result = Arr.sequence([Option.some(1), Option.none(), Option.some(3)]);
   assertEquals(result, Option.none());
 });
 
@@ -654,11 +646,7 @@ Deno.test("traverseResult - short-circuits at first Err", () => {
 });
 
 Deno.test("sequenceResult - all Ok results in Ok of array", () => {
-  const result = Arr.sequenceResult([
-    Result.ok(1),
-    Result.ok(2),
-    Result.ok(3),
-  ]);
+  const result = Arr.sequenceResult([Result.ok(1), Result.ok(2), Result.ok(3)]);
   assertEquals(result, Result.ok([1, 2, 3]));
 });
 
@@ -685,7 +673,7 @@ Deno.test(
   async () => {
     const result = await pipe(
       [1, 2, 3],
-      Arr.traverseTask((n) => Task.of(n * 10)),
+      Arr.traverseTask((n) => Task.resolve(n * 10)),
     )();
     assertEquals(result, [10, 20, 30]);
   },
@@ -694,7 +682,7 @@ Deno.test(
 Deno.test("traverseTask - empty array resolves to empty array", async () => {
   const result = await pipe(
     [] as number[],
-    Arr.traverseTask((n) => Task.of(n)),
+    Arr.traverseTask((n) => Task.resolve(n)),
   )();
   assertEquals(result, []);
 });
@@ -710,7 +698,11 @@ Deno.test("traverseTask - handles async operations", async () => {
 Deno.test(
   "sequenceTask - runs all tasks in parallel and collects results",
   async () => {
-    const tasks: Task<number>[] = [Task.of(10), Task.of(20), Task.of(30)];
+    const tasks: Task<number>[] = [
+      Task.resolve(10),
+      Task.resolve(20),
+      Task.resolve(30),
+    ];
     const result = await Arr.sequenceTask(tasks)();
     assertEquals(result, [10, 20, 30]);
   },

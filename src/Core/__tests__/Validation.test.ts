@@ -3,24 +3,13 @@ import { Validation } from "../Validation.ts";
 import { pipe } from "../../Composition/pipe.ts";
 
 // ---------------------------------------------------------------------------
-// of / toValid
+// valid
 // ---------------------------------------------------------------------------
 
-Deno.test("Validation.of wraps a value in Valid", () => {
-  const result = Validation.of<string, number>(42);
+Deno.test("Validation.valid wraps a value in Valid", () => {
+  const result = Validation.valid<string, number>(42);
   assertEquals(result, { kind: "Valid", value: 42 });
 });
-
-Deno.test("Validation.toValid creates a Valid with the given value", () => {
-  assertEquals(Validation.toValid("hello"), { kind: "Valid", value: "hello" });
-});
-
-Deno.test(
-  "Validation.of and Validation.toValid produce equivalent results",
-  () => {
-    assertEquals(Validation.of<never, number>(10), Validation.toValid(10));
-  },
-);
 
 // ---------------------------------------------------------------------------
 // isValid
@@ -28,46 +17,46 @@ Deno.test(
 
 Deno.test("Validation.isValid returns true for Valid", () => {
   assertStrictEquals(
-    Validation.isValid(Validation.of<string, number>(1)),
+    Validation.isValid(Validation.valid<string, number>(1)),
     true,
   );
 });
 
 Deno.test("Validation.isValid returns false for Invalid", () => {
   assertStrictEquals(
-    Validation.isValid(Validation.fail<string, number>("err")),
+    Validation.isValid(Validation.invalid("err")),
     false,
   );
 });
 
 // ---------------------------------------------------------------------------
-// toInvalid / isInvalid
+// invalidAll / isInvalid
 // ---------------------------------------------------------------------------
 
-Deno.test("Validation.toInvalid creates an Invalid with errors array", () => {
-  assertEquals(Validation.toInvalid(["error1", "error2"]), {
+Deno.test("Validation.invalidAll creates an Invalid with errors array", () => {
+  assertEquals(Validation.invalidAll(["error1", "error2"]), {
     kind: "Invalid",
     errors: ["error1", "error2"],
   });
 });
 
 Deno.test("Validation.isInvalid returns true for Invalid", () => {
-  assertStrictEquals(Validation.isInvalid(Validation.toInvalid(["e"])), true);
+  assertStrictEquals(Validation.isInvalid(Validation.invalid(["e"])), true);
 });
 
 Deno.test("Validation.isInvalid returns false for Valid", () => {
   assertStrictEquals(
-    Validation.isInvalid(Validation.of<string, number>(1)),
+    Validation.isInvalid(Validation.valid<string, number>(1)),
     false,
   );
 });
 
 // ---------------------------------------------------------------------------
-// fail
+// invalid
 // ---------------------------------------------------------------------------
 
-Deno.test("Validation.fail creates an Invalid from a single error", () => {
-  assertEquals(Validation.fail<string, number>("oops"), {
+Deno.test("Validation.invalid creates an Invalid from a single error", () => {
+  assertEquals(Validation.invalid("oops"), {
     kind: "Invalid",
     errors: ["oops"],
   });
@@ -79,7 +68,7 @@ Deno.test("Validation.fail creates an Invalid from a single error", () => {
 
 Deno.test("Validation.map transforms the valid value", () => {
   const result = pipe(
-    Validation.of<string, number>(5),
+    Validation.valid<string, number>(5),
     Validation.map((n: number) => n * 2),
   );
   assertEquals(result, { kind: "Valid", value: 10 });
@@ -87,7 +76,7 @@ Deno.test("Validation.map transforms the valid value", () => {
 
 Deno.test("Validation.map passes through Invalid unchanged", () => {
   const result = pipe(
-    Validation.fail<string, number>("error"),
+    Validation.invalid("error"),
     Validation.map((n: number) => n * 2),
   );
   assertEquals(result, { kind: "Invalid", errors: ["error"] });
@@ -95,7 +84,7 @@ Deno.test("Validation.map passes through Invalid unchanged", () => {
 
 Deno.test("Validation.map can change the value type", () => {
   const result = pipe(
-    Validation.of<string, number>(42),
+    Validation.valid<string, number>(42),
     Validation.map((n: number) => `val: ${n}`),
   );
   assertEquals(result, { kind: "Valid", value: "val: 42" });
@@ -107,10 +96,10 @@ Deno.test("Validation.map can change the value type", () => {
 
 Deno.test("Validation.chain applies function when Valid", () => {
   const validatePositive = (n: number): Validation<string, number> =>
-    n > 0 ? Validation.of(n) : Validation.fail("Must be positive");
+    n > 0 ? Validation.valid(n) : Validation.invalid("Must be positive");
 
   const result = pipe(
-    Validation.of<string, number>(5),
+    Validation.valid<string, number>(5),
     Validation.chain(validatePositive),
   );
   assertEquals(result, { kind: "Valid", value: 5 });
@@ -118,10 +107,10 @@ Deno.test("Validation.chain applies function when Valid", () => {
 
 Deno.test("Validation.chain returns Invalid when function fails", () => {
   const validatePositive = (n: number): Validation<string, number> =>
-    n > 0 ? Validation.of(n) : Validation.fail("Must be positive");
+    n > 0 ? Validation.valid(n) : Validation.invalid("Must be positive");
 
   const result = pipe(
-    Validation.of<string, number>(-1),
+    Validation.valid<string, number>(-1),
     Validation.chain(validatePositive),
   );
   assertEquals(result, { kind: "Invalid", errors: ["Must be positive"] });
@@ -132,10 +121,10 @@ Deno.test(
   () => {
     let called = false;
     pipe(
-      Validation.fail<string, number>("existing error"),
+      Validation.invalid("existing error"),
       Validation.chain((_n: number) => {
         called = true;
-        return Validation.of<string, number>(_n);
+        return Validation.valid<string, number>(_n);
       }),
     );
     assertStrictEquals(called, false);
@@ -149,9 +138,9 @@ Deno.test(
 Deno.test("Validation.ap applies Valid function to Valid value", () => {
   const add = (a: number) => (b: number) => a + b;
   const result = pipe(
-    Validation.of<string, typeof add>(add),
-    Validation.ap(Validation.of<string, number>(5)),
-    Validation.ap(Validation.of<string, number>(3)),
+    Validation.valid<string, typeof add>(add),
+    Validation.ap(Validation.valid<string, number>(5)),
+    Validation.ap(Validation.valid<string, number>(3)),
   );
   assertEquals(result, { kind: "Valid", value: 8 });
 });
@@ -159,9 +148,9 @@ Deno.test("Validation.ap applies Valid function to Valid value", () => {
 Deno.test("Validation.ap accumulates errors from both sides", () => {
   const add = (a: number) => (b: number) => a + b;
   const result = pipe(
-    Validation.of<string, typeof add>(add),
-    Validation.ap(Validation.fail<string, number>("bad a")),
-    Validation.ap(Validation.fail<string, number>("bad b")),
+    Validation.valid<string, typeof add>(add),
+    Validation.ap(Validation.invalid("bad a")),
+    Validation.ap(Validation.invalid("bad b")),
   );
   assertEquals(result, { kind: "Invalid", errors: ["bad a", "bad b"] });
 });
@@ -170,8 +159,8 @@ Deno.test(
   "Validation.ap returns errors from value when function is Valid",
   () => {
     const result = pipe(
-      Validation.of<string, (n: number) => number>((n) => n * 2),
-      Validation.ap(Validation.fail<string, number>("bad value")),
+      Validation.valid<string, (n: number) => number>((n) => n * 2),
+      Validation.ap(Validation.invalid("bad value")),
     );
     assertEquals(result, { kind: "Invalid", errors: ["bad value"] });
   },
@@ -181,8 +170,8 @@ Deno.test(
   "Validation.ap returns errors from function when value is Valid",
   () => {
     const result = pipe(
-      Validation.fail<string, (n: number) => number>("bad fn"),
-      Validation.ap(Validation.of<string, number>(5)),
+      Validation.invalid("bad fn"),
+      Validation.ap(Validation.valid<string, number>(5)),
     );
     assertEquals(result, { kind: "Invalid", errors: ["bad fn"] });
   },
@@ -198,14 +187,14 @@ Deno.test(
     });
 
     const validateName = (name: string): Validation<string, string> =>
-      name.length > 0 ? Validation.of(name) : Validation.fail("Name required");
+      name.length > 0 ? Validation.valid(name) : Validation.invalid("Name required");
     const validateEmail = (email: string): Validation<string, string> =>
-      email.includes("@") ? Validation.of(email) : Validation.fail("Invalid email");
+      email.includes("@") ? Validation.valid(email) : Validation.invalid("Invalid email");
     const validateAge = (age: number): Validation<string, number> =>
-      age >= 0 ? Validation.of(age) : Validation.fail("Age must be >= 0");
+      age >= 0 ? Validation.valid(age) : Validation.invalid("Age must be >= 0");
 
     const result = pipe(
-      Validation.of<string, typeof createUser>(createUser),
+      Validation.valid<string, typeof createUser>(createUser),
       Validation.ap(validateName("")),
       Validation.ap(validateEmail("bad")),
       Validation.ap(validateAge(-5)),
@@ -225,10 +214,10 @@ Deno.test("Validation.ap succeeds when all validations pass", () => {
   });
 
   const result = pipe(
-    Validation.of<string, typeof createUser>(createUser),
-    Validation.ap(Validation.of<string, string>("Alice")),
-    Validation.ap(Validation.of<string, string>("alice@example.com")),
-    Validation.ap(Validation.of<string, number>(30)),
+    Validation.valid<string, typeof createUser>(createUser),
+    Validation.ap(Validation.valid<string, string>("Alice")),
+    Validation.ap(Validation.valid<string, string>("alice@example.com")),
+    Validation.ap(Validation.valid<string, number>(30)),
   );
   assertEquals(result, {
     kind: "Valid",
@@ -242,7 +231,7 @@ Deno.test("Validation.ap succeeds when all validations pass", () => {
 
 Deno.test("Validation.fold calls onValid for Valid", () => {
   const result = pipe(
-    Validation.of<string, number>(5),
+    Validation.valid<string, number>(5),
     Validation.fold(
       (errors) => `Errors: ${errors.join(", ")}`,
       (n: number) => `Value: ${n}`,
@@ -253,7 +242,7 @@ Deno.test("Validation.fold calls onValid for Valid", () => {
 
 Deno.test("Validation.fold calls onInvalid for Invalid", () => {
   const result = pipe(
-    Validation.toInvalid<string>(["a", "b"]) as Validation<string, number>,
+    Validation.invalidAll(["a", "b"]),
     Validation.fold(
       (errors) => `Errors: ${errors.join(", ")}`,
       (n: number) => `Value: ${n}`,
@@ -268,7 +257,7 @@ Deno.test("Validation.fold calls onInvalid for Invalid", () => {
 
 Deno.test("Validation.match calls valid handler for Valid", () => {
   const result = pipe(
-    Validation.of<string, number>(5),
+    Validation.valid<string, number>(5),
     Validation.match({
       valid: (n: number) => `got ${n}`,
       invalid: (errors) => `failed: ${errors.join(", ")}`,
@@ -279,7 +268,7 @@ Deno.test("Validation.match calls valid handler for Valid", () => {
 
 Deno.test("Validation.match calls invalid handler for Invalid", () => {
   const result = pipe(
-    Validation.fail<string, number>("oops"),
+    Validation.invalid("oops"),
     Validation.match({
       valid: (n: number) => `got ${n}`,
       invalid: (errors) => `failed: ${errors.join(", ")}`,
@@ -293,8 +282,8 @@ Deno.test("Validation.match is data-last (returns a function first)", () => {
     valid: (n) => `val: ${n}`,
     invalid: (errors) => `err: ${errors.join(";")}`,
   });
-  assertStrictEquals(handler(Validation.of(3)), "val: 3");
-  assertStrictEquals(handler(Validation.fail("x")), "err: x");
+  assertStrictEquals(handler(Validation.valid(3)), "val: 3");
+  assertStrictEquals(handler(Validation.invalid("x")), "err: x");
 });
 
 // ---------------------------------------------------------------------------
@@ -303,7 +292,7 @@ Deno.test("Validation.match is data-last (returns a function first)", () => {
 
 Deno.test("Validation.getOrElse returns value for Valid", () => {
   const result = pipe(
-    Validation.of<string, number>(5),
+    Validation.valid<string, number>(5),
     Validation.getOrElse(0),
   );
   assertStrictEquals(result, 5);
@@ -311,7 +300,7 @@ Deno.test("Validation.getOrElse returns value for Valid", () => {
 
 Deno.test("Validation.getOrElse returns default for Invalid", () => {
   const result = pipe(
-    Validation.fail<string, number>("error"),
+    Validation.invalid("error"),
     Validation.getOrElse(0),
   );
   assertStrictEquals(result, 0);
@@ -326,7 +315,7 @@ Deno.test(
   () => {
     let sideEffect = 0;
     const result = pipe(
-      Validation.of<string, number>(5),
+      Validation.valid<string, number>(5),
       Validation.tap((n: number) => {
         sideEffect = n;
       }),
@@ -339,7 +328,7 @@ Deno.test(
 Deno.test("Validation.tap does not execute side effect on Invalid", () => {
   let called = false;
   const result = pipe(
-    Validation.fail<string, number>("error"),
+    Validation.invalid("error"),
     Validation.tap((_n: number) => {
       called = true;
     }),
@@ -357,10 +346,10 @@ Deno.test(
   () => {
     let called = false;
     const result = pipe(
-      Validation.of<string, number>(5),
+      Validation.valid<string, number>(5),
       Validation.recover(() => {
         called = true;
-        return Validation.of<string, number>(99);
+        return Validation.valid<string, number>(99);
       }),
     );
     assertStrictEquals(called, false);
@@ -370,16 +359,16 @@ Deno.test(
 
 Deno.test("Validation.recover provides fallback for Invalid", () => {
   const result = pipe(
-    Validation.fail<string, number>("error"),
-    Validation.recover(() => Validation.of<string, number>(99)),
+    Validation.invalid("error"),
+    Validation.recover(() => Validation.valid<string, number>(99)),
   );
   assertEquals(result, { kind: "Valid", value: 99 });
 });
 
 Deno.test("Validation.recover can return Invalid as fallback", () => {
   const result = pipe(
-    Validation.fail<string, number>("first"),
-    Validation.recover(() => Validation.fail<string, number>("second")),
+    Validation.invalid("first"),
+    Validation.recover(() => Validation.invalid("second")),
   );
   assertEquals(result, { kind: "Invalid", errors: ["second"] });
 });
@@ -392,8 +381,8 @@ Deno.test(
   "Validation.recoverUnless recovers when errors do not include blocked errors",
   () => {
     const result = pipe(
-      Validation.fail<string, number>("recoverable"),
-      Validation.recoverUnless(["fatal"], () => Validation.of<string, number>(42)),
+      Validation.invalid("recoverable"),
+      Validation.recoverUnless(["fatal"], () => Validation.valid<string, number>(42)),
     );
     assertEquals(result, { kind: "Valid", value: 42 });
   },
@@ -403,8 +392,8 @@ Deno.test(
   "Validation.recoverUnless does NOT recover when errors include a blocked error",
   () => {
     const result = pipe(
-      Validation.fail<string, number>("fatal"),
-      Validation.recoverUnless(["fatal"], () => Validation.of<string, number>(42)),
+      Validation.invalid("fatal"),
+      Validation.recoverUnless(["fatal"], () => Validation.valid<string, number>(42)),
     );
     assertEquals(result, { kind: "Invalid", errors: ["fatal"] });
   },
@@ -412,8 +401,8 @@ Deno.test(
 
 Deno.test("Validation.recoverUnless passes through Valid unchanged", () => {
   const result = pipe(
-    Validation.of<string, number>(10),
-    Validation.recoverUnless(["fatal"], () => Validation.of<string, number>(42)),
+    Validation.valid<string, number>(10),
+    Validation.recoverUnless(["fatal"], () => Validation.valid<string, number>(42)),
   );
   assertEquals(result, { kind: "Valid", value: 10 });
 });
@@ -422,8 +411,8 @@ Deno.test(
   "Validation.recoverUnless does NOT recover when any error matches blocked list",
   () => {
     const result = pipe(
-      Validation.toInvalid(["minor", "fatal"]) as Validation<string, number>,
-      Validation.recoverUnless(["fatal"], () => Validation.of<string, number>(42)),
+      Validation.invalidAll(["minor", "fatal"]),
+      Validation.recoverUnless(["fatal"], () => Validation.valid<string, number>(42)),
     );
     assertEquals(result, { kind: "Invalid", errors: ["minor", "fatal"] });
   },
@@ -435,32 +424,32 @@ Deno.test(
 
 Deno.test("Validation.combine returns second Valid when both are Valid", () => {
   const result = Validation.combine(
-    Validation.of<string, string>("a"),
-    Validation.of<string, string>("b"),
+    Validation.valid<string, string>("a"),
+    Validation.valid<string, string>("b"),
   );
   assertEquals(result, { kind: "Valid", value: "b" });
 });
 
 Deno.test("Validation.combine returns Invalid when first is Invalid", () => {
   const result = Validation.combine(
-    Validation.fail<string, string>("err1"),
-    Validation.of<string, string>("b"),
+    Validation.invalid("err1"),
+    Validation.valid<string, string>("b"),
   );
   assertEquals(result, { kind: "Invalid", errors: ["err1"] });
 });
 
 Deno.test("Validation.combine returns Invalid when second is Invalid", () => {
   const result = Validation.combine(
-    Validation.of<string, string>("a"),
-    Validation.fail<string, string>("err2"),
+    Validation.valid<string, string>("a"),
+    Validation.invalid("err2"),
   );
   assertEquals(result, { kind: "Invalid", errors: ["err2"] });
 });
 
 Deno.test("Validation.combine accumulates errors when both are Invalid", () => {
   const result = Validation.combine(
-    Validation.fail<string, string>("err1"),
-    Validation.fail<string, string>("err2"),
+    Validation.invalid("err1"),
+    Validation.invalid("err2"),
   );
   assertEquals(result, { kind: "Invalid", errors: ["err1", "err2"] });
 });
@@ -469,8 +458,8 @@ Deno.test(
   "Validation.combine accumulates multiple errors from both sides",
   () => {
     const result = Validation.combine(
-      Validation.toInvalid(["a", "b"]) as Validation<string, number>,
-      Validation.toInvalid(["c"]) as Validation<string, number>,
+      Validation.invalidAll(["a", "b"]),
+      Validation.invalidAll(["c"]),
     );
     assertEquals(result, { kind: "Invalid", errors: ["a", "b", "c"] });
   },
@@ -482,18 +471,18 @@ Deno.test(
 
 Deno.test("Validation.combineAll returns last Valid when all are Valid", () => {
   const result = Validation.combineAll([
-    Validation.of<string, number>(1),
-    Validation.of<string, number>(2),
-    Validation.of<string, number>(3),
+    Validation.valid<string, number>(1),
+    Validation.valid<string, number>(2),
+    Validation.valid<string, number>(3),
   ]);
   assertEquals(result, { kind: "Valid", value: 3 });
 });
 
 Deno.test("Validation.combineAll accumulates all errors", () => {
   const result = Validation.combineAll([
-    Validation.fail<string, number>("err1"),
-    Validation.of<string, number>(2),
-    Validation.fail<string, number>("err2"),
+    Validation.invalid("err1"),
+    Validation.valid<string, number>(2),
+    Validation.invalid("err2"),
   ]);
   assertEquals(result, { kind: "Invalid", errors: ["err1", "err2"] });
 });
@@ -502,9 +491,9 @@ Deno.test(
   "Validation.combineAll with all Invalid accumulates all errors",
   () => {
     const result = Validation.combineAll([
-      Validation.fail<string, number>("a"),
-      Validation.fail<string, number>("b"),
-      Validation.fail<string, number>("c"),
+      Validation.invalid("a"),
+      Validation.invalid("b"),
+      Validation.invalid("c"),
     ]);
     assertEquals(result, { kind: "Invalid", errors: ["a", "b", "c"] });
   },
@@ -513,7 +502,7 @@ Deno.test(
 Deno.test(
   "Validation.combineAll with single element returns that element",
   () => {
-    const result = Validation.combineAll([Validation.of<string, number>(42)]);
+    const result = Validation.combineAll([Validation.valid<string, number>(42)]);
     assertEquals(result, { kind: "Valid", value: 42 });
   },
 );
@@ -529,10 +518,10 @@ Deno.test("Validation.combineAll returns undefined for empty array", () => {
 
 Deno.test("Validation composes well in a pipe chain", () => {
   const result = pipe(
-    Validation.of<string, number>(5),
+    Validation.valid<string, number>(5),
     Validation.map((n: number) => n * 2),
     Validation.chain((n: number) =>
-      n > 5 ? Validation.of<string, number>(n) : Validation.fail<string, number>("Too small")
+      n > 5 ? Validation.valid<string, number>(n) : Validation.invalidAll(["Too small"])
     ),
     Validation.getOrElse(0),
   );
@@ -541,10 +530,10 @@ Deno.test("Validation composes well in a pipe chain", () => {
 
 Deno.test("Validation pipe chain with Invalid short-circuits in chain", () => {
   const result = pipe(
-    Validation.of<string, number>(2),
+    Validation.valid<string, number>(2),
     Validation.map((n: number) => n * 2),
     Validation.chain((n: number) =>
-      n > 5 ? Validation.of<string, number>(n) : Validation.fail<string, number>("Too small")
+      n > 5 ? Validation.valid<string, number>(n) : Validation.invalid("Too small")
     ),
     Validation.getOrElse(0),
   );
@@ -567,7 +556,7 @@ Deno.test("Validation.ap defensive branch: Invalid with empty errors falls back 
     string,
     (n: number) => number
   >;
-  const result = Validation.ap(Validation.of<string, number>(5))(badFn);
+  const result = Validation.ap(Validation.valid<string, number>(5))(badFn);
   // errors = [], isNonEmptyList([]) === false → falls back to of(data as never)
   assertEquals(result as unknown, { kind: "Valid", value: badFn });
 });

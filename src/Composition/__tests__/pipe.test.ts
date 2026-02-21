@@ -12,10 +12,7 @@ Deno.test("pipe - single value (identity)", () => {
 });
 
 Deno.test("pipe - single function transformation", () => {
-  const result = pipe(
-    5,
-    (n: number) => n * 2,
-  );
+  const result = pipe(5, (n: number) => n * 2);
   assertStrictEquals(result, 10);
 });
 
@@ -59,7 +56,7 @@ Deno.test("pipe - type transformation through chain", () => {
 
 Deno.test("pipe - integration with Option.map", () => {
   const result = pipe(
-    Option.of(5),
+    Option.some(5),
     Option.map((n: number) => n * 2),
     Option.map((n: number) => n + 1),
     Option.getOrElse(0),
@@ -78,7 +75,7 @@ Deno.test("pipe - integration with Option.map on None", () => {
 
 Deno.test("pipe - integration with Result.map on Ok", () => {
   const result = pipe(
-    Result.of<string, number>(10),
+    Result.ok<number>(10),
     Result.map((n: number) => n * 3),
     Result.getOrElse(0),
   );

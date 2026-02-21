@@ -20,12 +20,12 @@ export namespace TaskResult {
   /**
    * Wraps a value in a successful TaskResult.
    */
-  export const of = <E, A>(value: A): TaskResult<E, A> => Task.of(Result.ok(value));
+  export const ok = <E, A>(value: A): TaskResult<E, A> => Task.resolve(Result.ok(value));
 
   /**
    * Creates a failed TaskResult with the given error.
    */
-  export const err = <E, A>(error: E): TaskResult<E, A> => Task.of(Result.err(error));
+  export const err = <E, A>(error: E): TaskResult<E, A> => Task.resolve(Result.err(error));
 
   /**
    * Creates a TaskResult from a function that may throw.
@@ -65,7 +65,7 @@ export namespace TaskResult {
   export const chain =
     <E, A, B>(f: (a: A) => TaskResult<E, B>) => (data: TaskResult<E, A>): TaskResult<E, B> =>
       Task.chain((result: Result<E, A>) =>
-        Result.isOk(result) ? f(result.value) : Task.of(Result.err(result.error))
+        Result.isOk(result) ? f(result.value) : Task.resolve(Result.err(result.error))
       )(data);
 
   /**
@@ -88,7 +88,7 @@ export namespace TaskResult {
   export const recover =
     <E, A>(fallback: (e: E) => TaskResult<E, A>) => (data: TaskResult<E, A>): TaskResult<E, A> =>
       Task.chain((result: Result<E, A>) =>
-        Result.isErr(result) ? fallback(result.error) : Task.of(result)
+        Result.isErr(result) ? fallback(result.error) : Task.resolve(result)
       )(data);
 
   /**
@@ -126,31 +126,32 @@ export namespace TaskResult {
    * );
    * ```
    */
-  export const retry =
-    <E>(options: {
-      attempts: number;
-      backoff?: number | ((attempt: number) => number);
-      when?: (error: E) => boolean;
-    }) =>
-    <A>(data: TaskResult<E, A>): TaskResult<E, A> =>
-    () => {
-      const { attempts, backoff, when: shouldRetry } = options;
-      const getDelay = (n: number): number =>
-        backoff === undefined ? 0 : typeof backoff === "function" ? backoff(n) : backoff;
+  export const retry = <E>(options: {
+    attempts: number;
+    backoff?: number | ((attempt: number) => number);
+    when?: (error: E) => boolean;
+  }) =>
+  <A>(data: TaskResult<E, A>): TaskResult<E, A> =>
+  () => {
+    const { attempts, backoff, when: shouldRetry } = options;
+    const getDelay = (n: number): number =>
+      backoff === undefined ? 0 : typeof backoff === "function" ? backoff(n) : backoff;
 
-      const run = (left: number): Promise<Result<E, A>> =>
-        data().then((result) => {
-          if (Result.isOk(result)) return result;
-          if (left <= 1) return result;
-          if (shouldRetry !== undefined && !shouldRetry(result.error)) return result;
-          const ms = getDelay(attempts - left + 1);
-          return (ms > 0 ? new Promise<void>((r) => setTimeout(r, ms)) : Promise.resolve()).then(
-            () => run(left - 1),
-          );
-        });
+    const run = (left: number): Promise<Result<E, A>> =>
+      data().then((result) => {
+        if (Result.isOk(result)) return result;
+        if (left <= 1) return result;
+        if (shouldRetry !== undefined && !shouldRetry(result.error)) {
+          return result;
+        }
+        const ms = getDelay(attempts - left + 1);
+        return (
+          ms > 0 ? new Promise<void>((r) => setTimeout(r, ms)) : Promise.resolve()
+        ).then(() => run(left - 1));
+      });
 
-      return run(attempts);
-    };
+    return run(attempts);
+  };
 
   /**
    * Fails a TaskResult with a typed error if it does not resolve within the given time.
@@ -164,12 +165,13 @@ export namespace TaskResult {
    * ```
    */
   export const timeout =
-    <E>(ms: number, onTimeout: () => E) =>
-    <A>(data: TaskResult<E, A>): TaskResult<E, A> =>
-    () => {
+    <E>(ms: number, onTimeout: () => E) => <A>(data: TaskResult<E, A>): TaskResult<E, A> => () => {
       let timerId: ReturnType<typeof setTimeout>;
       return Promise.race([
-        data().then((result) => { clearTimeout(timerId); return result; }),
+        data().then((result) => {
+          clearTimeout(timerId);
+          return result;
+        }),
         new Promise<Result<E, A>>((resolve) => {
           timerId = setTimeout(() => resolve(Result.err(onTimeout())), ms);
         }),

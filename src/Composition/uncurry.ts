@@ -11,15 +11,15 @@
  * uncurry(nested)(); // 42
  *
  * // Original curried function
- * Option.map(n => n * 2)(Option.of(5)); // Some(10)
+ * Option.map(n => n * 2)(Option.some(5)); // Some(10)
  *
  * // Uncurried - all arguments at once
  * const mapUncurried = uncurry(Option.map);
- * mapUncurried(n => n * 2, Option.of(5)); // Some(10)
+ * mapUncurried(n => n * 2, Option.some(5)); // Some(10)
  *
  * // Combined with flip for data-first uncurried
  * const mapDataFirst = uncurry(flip(Option.map));
- * mapDataFirst(Option.of(5), n => n * 2); // Some(10)
+ * mapDataFirst(Option.some(5), n => n * 2); // Some(10)
  * ```
  *
  * @see {@link flip} for reversing curried argument order

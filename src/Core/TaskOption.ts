@@ -24,22 +24,22 @@ export namespace TaskOption {
   /**
    * Wraps a value in a Some inside a Task.
    */
-  export const of = <A>(value: A): TaskOption<A> => Task.of(Option.of(value));
+  export const some = <A>(value: A): TaskOption<A> => Task.resolve(Option.some(value));
 
   /**
    * Creates a TaskOption that resolves to None.
    */
-  export const none = <A = never>(): TaskOption<A> => Task.of(Option.none());
+  export const none = <A = never>(): TaskOption<A> => Task.resolve(Option.none());
 
   /**
    * Lifts an Option into a TaskOption.
    */
-  export const fromOption = <A>(option: Option<A>): TaskOption<A> => Task.of(option);
+  export const fromOption = <A>(option: Option<A>): TaskOption<A> => Task.resolve(option);
 
   /**
    * Lifts a Task into a TaskOption by wrapping its result in Some.
    */
-  export const fromTask = <A>(task: Task<A>): TaskOption<A> => Task.map(Option.of)(task);
+  export const fromTask = <A>(task: Task<A>): TaskOption<A> => Task.map(Option.some)(task);
 
   /**
    * Creates a TaskOption from a Promise-returning function.
@@ -53,7 +53,9 @@ export namespace TaskOption {
    * ```
    */
   export const tryCatch = <A>(f: () => Promise<A>): TaskOption<A> => () =>
-    f().then(Option.of).catch(() => Option.none());
+    f()
+      .then(Option.some)
+      .catch(() => Option.none());
 
   /**
    * Transforms the value inside a TaskOption.
@@ -75,7 +77,7 @@ export namespace TaskOption {
    */
   export const chain = <A, B>(f: (a: A) => TaskOption<B>) => (data: TaskOption<A>): TaskOption<B> =>
     Task.chain((option: Option<A>) =>
-      Option.isSome(option) ? f(option.value) : Task.of(Option.none())
+      Option.isSome(option) ? f(option.value) : Task.resolve(Option.none())
     )(data);
 
   /**

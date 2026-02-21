@@ -22,8 +22,8 @@ Deno.test("RemoteData.success creates Success", () => {
   assertEquals(RemoteData.success(42), { kind: "Success", value: 42 });
 });
 
-Deno.test("RemoteData.of is alias for success", () => {
-  assertEquals(RemoteData.of(42), RemoteData.success(42));
+Deno.test("RemoteData.success is alias for success", () => {
+  assertEquals(RemoteData.success(42), RemoteData.success(42));
 });
 
 // ---------------------------------------------------------------------------
@@ -58,7 +58,7 @@ Deno.test("RemoteData.isSuccess", () => {
 
 Deno.test("RemoteData.map transforms Success value", () => {
   const result = pipe(
-    RemoteData.of<string, number>(5),
+    RemoteData.success<string, number>(5),
     RemoteData.map((n: number) => n * 2),
   );
   assertEquals(result, { kind: "Success", value: 10 });
@@ -102,7 +102,7 @@ Deno.test("RemoteData.mapError transforms Failure error", () => {
 
 Deno.test("RemoteData.mapError passes through Success", () => {
   const result = pipe(
-    RemoteData.of<string, number>(5),
+    RemoteData.success<string, number>(5),
     RemoteData.mapError((e: string) => e.toUpperCase()),
   );
   assertEquals(result, { kind: "Success", value: 5 });
@@ -120,9 +120,9 @@ Deno.test("RemoteData.mapError passes through NotAsked and Loading", () => {
 
 Deno.test("RemoteData.chain applies function on Success", () => {
   const result = pipe(
-    RemoteData.of<string, number>(5),
+    RemoteData.success<string, number>(5),
     RemoteData.chain((n: number) =>
-      n > 0 ? RemoteData.of<string, number>(n * 2) : RemoteData.failure<string, number>("neg")
+      n > 0 ? RemoteData.success<string, number>(n * 2) : RemoteData.failure<string, number>("neg")
     ),
   );
   assertEquals(result, { kind: "Success", value: 10 });
@@ -131,7 +131,7 @@ Deno.test("RemoteData.chain applies function on Success", () => {
 Deno.test("RemoteData.chain propagates Failure", () => {
   const result = pipe(
     RemoteData.failure<string, number>("err"),
-    RemoteData.chain((n: number) => RemoteData.of<string, number>(n * 2)),
+    RemoteData.chain((n: number) => RemoteData.success<string, number>(n * 2)),
   );
   assertEquals(result, { kind: "Failure", error: "err" });
 });
@@ -139,7 +139,7 @@ Deno.test("RemoteData.chain propagates Failure", () => {
 Deno.test("RemoteData.chain propagates Loading", () => {
   const result = pipe(
     RemoteData.loading<string, number>(),
-    RemoteData.chain((n: number) => RemoteData.of<string, number>(n * 2)),
+    RemoteData.chain((n: number) => RemoteData.success<string, number>(n * 2)),
   );
   assertEquals(result, { kind: "Loading" });
 });
@@ -147,7 +147,7 @@ Deno.test("RemoteData.chain propagates Loading", () => {
 Deno.test("RemoteData.chain propagates NotAsked", () => {
   const result = pipe(
     RemoteData.notAsked<string, number>(),
-    RemoteData.chain((n: number) => RemoteData.of<string, number>(n * 2)),
+    RemoteData.chain((n: number) => RemoteData.success<string, number>(n * 2)),
   );
   assertEquals(result, { kind: "NotAsked" });
 });
@@ -159,9 +159,9 @@ Deno.test("RemoteData.chain propagates NotAsked", () => {
 Deno.test("RemoteData.ap applies function to value when both Success", () => {
   const add = (a: number) => (b: number) => a + b;
   const result = pipe(
-    RemoteData.of<string, typeof add>(add),
-    RemoteData.ap(RemoteData.of<string, number>(5)),
-    RemoteData.ap(RemoteData.of<string, number>(3)),
+    RemoteData.success<string, typeof add>(add),
+    RemoteData.ap(RemoteData.success<string, number>(5)),
+    RemoteData.ap(RemoteData.success<string, number>(3)),
   );
   assertEquals(result, { kind: "Success", value: 8 });
 });
@@ -169,7 +169,7 @@ Deno.test("RemoteData.ap applies function to value when both Success", () => {
 Deno.test("RemoteData.ap returns Failure when function is Failure", () => {
   const result = pipe(
     RemoteData.failure<string, (n: number) => number>("err"),
-    RemoteData.ap(RemoteData.of<string, number>(5)),
+    RemoteData.ap(RemoteData.success<string, number>(5)),
   );
   assertEquals(result, { kind: "Failure", error: "err" });
 });
@@ -177,7 +177,7 @@ Deno.test("RemoteData.ap returns Failure when function is Failure", () => {
 Deno.test("RemoteData.ap returns Failure when value is Failure", () => {
   const double = (n: number) => n * 2;
   const result = pipe(
-    RemoteData.of<string, typeof double>(double),
+    RemoteData.success<string, typeof double>(double),
     RemoteData.ap(RemoteData.failure<string, number>("err")),
   );
   assertEquals(result, { kind: "Failure", error: "err" });
@@ -186,7 +186,7 @@ Deno.test("RemoteData.ap returns Failure when value is Failure", () => {
 Deno.test("RemoteData.ap returns Loading when either is Loading", () => {
   const double = (n: number) => n * 2;
   const result = pipe(
-    RemoteData.of<string, typeof double>(double),
+    RemoteData.success<string, typeof double>(double),
     RemoteData.ap(RemoteData.loading<string, number>()),
   );
   assertEquals(result, { kind: "Loading" });
@@ -203,7 +203,7 @@ Deno.test("RemoteData.ap returns Failure of function when both are Failure", () 
 Deno.test("RemoteData.ap returns NotAsked when function is NotAsked and arg is Success", () => {
   const result = pipe(
     RemoteData.notAsked<string, (n: number) => number>(),
-    RemoteData.ap(RemoteData.of<string, number>(5)),
+    RemoteData.ap(RemoteData.success<string, number>(5)),
   );
   assertEquals(result, { kind: "NotAsked" });
 });
@@ -211,7 +211,7 @@ Deno.test("RemoteData.ap returns NotAsked when function is NotAsked and arg is S
 Deno.test("RemoteData.ap returns Loading when function is Loading and arg is Success", () => {
   const result = pipe(
     RemoteData.loading<string, (n: number) => number>(),
-    RemoteData.ap(RemoteData.of<string, number>(5)),
+    RemoteData.ap(RemoteData.success<string, number>(5)),
   );
   assertEquals(result, { kind: "Loading" });
 });
@@ -254,7 +254,7 @@ Deno.test("RemoteData.match handles all four cases", () => {
 
 Deno.test("RemoteData.match works in pipe", () => {
   const result = pipe(
-    RemoteData.of<string, number>(42),
+    RemoteData.success<string, number>(42),
     RemoteData.match({
       notAsked: () => "na",
       loading: () => "ld",
@@ -270,7 +270,7 @@ Deno.test("RemoteData.match works in pipe", () => {
 // ---------------------------------------------------------------------------
 
 Deno.test("RemoteData.getOrElse returns value for Success", () => {
-  const result = pipe(RemoteData.of<string, number>(5), RemoteData.getOrElse(0));
+  const result = pipe(RemoteData.success<string, number>(5), RemoteData.getOrElse(0));
   assertStrictEquals(result, 5);
 });
 
@@ -287,7 +287,7 @@ Deno.test("RemoteData.getOrElse returns default for non-Success", () => {
 Deno.test("RemoteData.tap executes side effect on Success", () => {
   let captured = 0;
   pipe(
-    RemoteData.of<string, number>(42),
+    RemoteData.success<string, number>(42),
     RemoteData.tap((n: number) => {
       captured = n;
     }),
@@ -318,7 +318,7 @@ Deno.test("RemoteData.tap does not execute on NotAsked or Loading", () => {
 
 Deno.test("RemoteData.tap returns original value", () => {
   const result = pipe(
-    RemoteData.of<string, number>(5),
+    RemoteData.success<string, number>(5),
     RemoteData.tap(() => {}),
   );
   assertEquals(result, { kind: "Success", value: 5 });
@@ -331,15 +331,15 @@ Deno.test("RemoteData.tap returns original value", () => {
 Deno.test("RemoteData.recover provides fallback for Failure", () => {
   const result = pipe(
     RemoteData.failure<string, number>("err"),
-    RemoteData.recover((_e: string) => RemoteData.of<string, number>(99)),
+    RemoteData.recover((_e: string) => RemoteData.success<string, number>(99)),
   );
   assertEquals(result, { kind: "Success", value: 99 });
 });
 
 Deno.test("RemoteData.recover passes through Success", () => {
   const result = pipe(
-    RemoteData.of<string, number>(5),
-    RemoteData.recover((_e: string) => RemoteData.of<string, number>(99)),
+    RemoteData.success<string, number>(5),
+    RemoteData.recover((_e: string) => RemoteData.success<string, number>(99)),
   );
   assertEquals(result, { kind: "Success", value: 5 });
 });
@@ -347,7 +347,7 @@ Deno.test("RemoteData.recover passes through Success", () => {
 Deno.test("RemoteData.recover passes through Loading", () => {
   const result = pipe(
     RemoteData.loading<string, number>(),
-    RemoteData.recover((_e: string) => RemoteData.of<string, number>(99)),
+    RemoteData.recover((_e: string) => RemoteData.success<string, number>(99)),
   );
   assertEquals(result, { kind: "Loading" });
 });
@@ -355,7 +355,7 @@ Deno.test("RemoteData.recover passes through Loading", () => {
 Deno.test("RemoteData.recover passes through NotAsked", () => {
   const result = pipe(
     RemoteData.notAsked<string, number>(),
-    RemoteData.recover((_e: string) => RemoteData.of<string, number>(99)),
+    RemoteData.recover((_e: string) => RemoteData.success<string, number>(99)),
   );
   assertEquals(result, { kind: "NotAsked" });
 });
@@ -380,7 +380,7 @@ Deno.test("RemoteData.toOption returns None for non-Success", () => {
 
 Deno.test("RemoteData.toResult returns Ok for Success", () => {
   const result = pipe(
-    RemoteData.of<string, number>(42),
+    RemoteData.success<string, number>(42),
     RemoteData.toResult(() => "not ready"),
   );
   assertEquals(result, { kind: "Ok", value: 42 });
@@ -406,10 +406,12 @@ Deno.test("RemoteData.toResult returns Err with fallback for NotAsked/Loading", 
 
 Deno.test("RemoteData composes well in a pipe chain", () => {
   const result = pipe(
-    RemoteData.of<string, number>(5),
+    RemoteData.success<string, number>(5),
     RemoteData.map((n: number) => n * 2),
     RemoteData.chain((n: number) =>
-      n > 5 ? RemoteData.of<string, number>(n) : RemoteData.failure<string, number>("too small")
+      n > 5
+        ? RemoteData.success<string, number>(n)
+        : RemoteData.failure<string, number>("too small")
     ),
     RemoteData.getOrElse(0),
   );

@@ -26,16 +26,6 @@ export type Both<E, A> = WithKind<"Both"> & WithError<E> & WithValue<A>;
 
 export namespace These {
   /**
-   * Creates a These holding only an error/warning (no success value).
-   *
-   * @example
-   * ```ts
-   * These.err("Something went wrong");
-   * ```
-   */
-  export const err = <E>(error: E): Err<E> => Result.err(error);
-
-  /**
    * Creates a These holding only a success value (no error).
    *
    * @example
@@ -44,6 +34,16 @@ export namespace These {
    * ```
    */
   export const ok = <A>(value: A): Ok<A> => Result.ok(value);
+
+  /**
+   * Creates a These holding only an error/warning (no success value).
+   *
+   * @example
+   * ```ts
+   * These.err("Something went wrong");
+   * ```
+   */
+  export const err = <E>(error: E): Err<E> => Result.err(error);
 
   /**
    * Creates a These holding both an error/warning and a success value.
@@ -77,14 +77,16 @@ export namespace These {
   /**
    * Returns true if the These contains a success value (Ok or Both).
    */
-  export const hasValue = <E, A>(data: These<E, A>): data is Ok<A> | Both<E, A> =>
-    data.kind === "Ok" || data.kind === "Both";
+  export const hasValue = <E, A>(
+    data: These<E, A>,
+  ): data is Ok<A> | Both<E, A> => data.kind === "Ok" || data.kind === "Both";
 
   /**
    * Returns true if the These contains an error/warning (Err or Both).
    */
-  export const hasError = <E, A>(data: These<E, A>): data is Err<E> | Both<E, A> =>
-    data.kind === "Error" || data.kind === "Both";
+  export const hasError = <E, A>(
+    data: These<E, A>,
+  ): data is Err<E> | Both<E, A> => data.kind === "Error" || data.kind === "Both";
 
   /**
    * Transforms the success value, leaving the error unchanged.
@@ -262,7 +264,9 @@ export namespace These {
    * These.toOption(These.err("err"));       // None
    * ```
    */
-  export const toOption = <E, A>(data: These<E, A>): import("./Option.ts").Option<A> =>
+  export const toOption = <E, A>(
+    data: These<E, A>,
+  ): import("./Option.ts").Option<A> =>
     hasValue(data) ? { kind: "Some", value: data.value } : { kind: "None" };
 
   /**

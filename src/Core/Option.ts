@@ -8,7 +8,7 @@ import { Result } from "./Result.ts";
  * @example
  * ```ts
  * const findUser = (id: string): Option<User> =>
- *   users.has(id) ? Option.of(users.get(id)!) : Option.none();
+ *   users.has(id) ? Option.some(users.get(id)!) : Option.none();
  *
  * pipe(
  *   findUser("123"),
@@ -23,16 +23,6 @@ export type Some<A> = WithKind<"Some"> & WithValue<A>;
 export type None = WithKind<"None">;
 
 export namespace Option {
-  /**
-   * Wraps a value in a Some.
-   *
-   * @example
-   * ```ts
-   * Option.of(42); // Some(42)
-   * ```
-   */
-  export const of = <A>(value: A): Option<A> => some(value);
-
   /**
    * Creates a Some containing the given value.
    */
@@ -91,7 +81,7 @@ export namespace Option {
    * @example
    * ```ts
    * pipe(
-   *   Option.of(42),
+   *   Option.some(42),
    *   Option.toResult(() => "Value was missing")
    * ); // Ok(42)
    *
@@ -122,7 +112,7 @@ export namespace Option {
    *
    * @example
    * ```ts
-   * pipe(Option.of(5), Option.map(n => n * 2)); // Some(10)
+   * pipe(Option.some(5), Option.map(n => n * 2)); // Some(10)
    * pipe(Option.none(), Option.map(n => n * 2)); // None
    * ```
    */
@@ -137,11 +127,11 @@ export namespace Option {
    * ```ts
    * const parseNumber = (s: string): Option<number> => {
    *   const n = parseInt(s, 10);
-   *   return isNaN(n) ? Option.none() : Option.of(n);
+   *   return isNaN(n) ? Option.none() : Option.some(n);
    * };
    *
-   * pipe(Option.of("42"), Option.chain(parseNumber)); // Some(42)
-   * pipe(Option.of("abc"), Option.chain(parseNumber)); // None
+   * pipe(Option.some("42"), Option.chain(parseNumber)); // Some(42)
+   * pipe(Option.some("abc"), Option.chain(parseNumber)); // None
    * ```
    */
   export const chain = <A, B>(f: (a: A) => Option<B>) => (data: Option<A>): Option<B> =>
@@ -153,7 +143,7 @@ export namespace Option {
    * @example
    * ```ts
    * pipe(
-   *   Option.of(5),
+   *   Option.some(5),
    *   Option.fold(
    *     () => "No value",
    *     n => `Value: ${n}`
@@ -187,7 +177,7 @@ export namespace Option {
    *
    * @example
    * ```ts
-   * pipe(Option.of(5), Option.getOrElse(0)); // 5
+   * pipe(Option.some(5), Option.getOrElse(0)); // 5
    * pipe(Option.none(), Option.getOrElse(0)); // 0
    * ```
    */
@@ -201,7 +191,7 @@ export namespace Option {
    * @example
    * ```ts
    * pipe(
-   *   Option.of(5),
+   *   Option.some(5),
    *   Option.tap(n => console.log("Value:", n)),
    *   Option.map(n => n * 2)
    * );
@@ -218,8 +208,8 @@ export namespace Option {
    *
    * @example
    * ```ts
-   * pipe(Option.of(5), Option.filter(n => n > 3)); // Some(5)
-   * pipe(Option.of(2), Option.filter(n => n > 3)); // None
+   * pipe(Option.some(5), Option.filter(n => n > 3)); // Some(5)
+   * pipe(Option.some(2), Option.filter(n => n > 3)); // None
    * ```
    */
   export const filter = <A>(predicate: (a: A) => boolean) => (data: Option<A>): Option<A> =>
@@ -238,9 +228,9 @@ export namespace Option {
    * ```ts
    * const add = (a: number) => (b: number) => a + b;
    * pipe(
-   *   Option.of(add),
-   *   Option.ap(Option.of(5)),
-   *   Option.ap(Option.of(3))
+   *   Option.some(add),
+   *   Option.ap(Option.some(5)),
+   *   Option.ap(Option.some(3))
    * ); // Some(8)
    * ```
    */

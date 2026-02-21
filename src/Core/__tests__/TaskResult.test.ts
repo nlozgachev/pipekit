@@ -6,8 +6,8 @@ import { pipe } from "../../Composition/pipe.ts";
 // of
 // ---------------------------------------------------------------------------
 
-Deno.test("TaskResult.of creates a Task that resolves to Ok", async () => {
-  const result = await TaskResult.of<string, number>(42)();
+Deno.test("TaskResult.ok creates a Task that resolves to Ok", async () => {
+  const result = await TaskResult.ok<string, number>(42)();
   assertEquals(result, { kind: "Ok", value: 42 });
 });
 
@@ -57,7 +57,7 @@ Deno.test("TaskResult.tryCatch catches synchronous throws in async functions", a
 
 Deno.test("TaskResult.map transforms Ok value", async () => {
   const result = await pipe(
-    TaskResult.of<string, number>(5),
+    TaskResult.ok<string, number>(5),
     TaskResult.map((n: number) => n * 2),
   )();
   assertEquals(result, { kind: "Ok", value: 10 });
@@ -73,7 +73,7 @@ Deno.test("TaskResult.map passes through Err unchanged", async () => {
 
 Deno.test("TaskResult.map can change the value type", async () => {
   const result = await pipe(
-    TaskResult.of<string, number>(42),
+    TaskResult.ok<string, number>(42),
     TaskResult.map((n: number) => `num: ${n}`),
   )();
   assertEquals(result, { kind: "Ok", value: "num: 42" });
@@ -93,7 +93,7 @@ Deno.test("TaskResult.mapError transforms Err value", async () => {
 
 Deno.test("TaskResult.mapError passes through Ok unchanged", async () => {
   const result = await pipe(
-    TaskResult.of<string, number>(5),
+    TaskResult.ok<string, number>(5),
     TaskResult.mapError((e: string) => e.toUpperCase()),
   )();
   assertEquals(result, { kind: "Ok", value: 5 });
@@ -105,10 +105,10 @@ Deno.test("TaskResult.mapError passes through Ok unchanged", async () => {
 
 Deno.test("TaskResult.chain applies function when Ok", async () => {
   const validatePositive = (n: number): TaskResult<string, number> =>
-    n > 0 ? TaskResult.of(n) : TaskResult.err("Must be positive");
+    n > 0 ? TaskResult.ok(n) : TaskResult.err("Must be positive");
 
   const result = await pipe(
-    TaskResult.of<string, number>(5),
+    TaskResult.ok<string, number>(5),
     TaskResult.chain(validatePositive),
   )();
   assertEquals(result, { kind: "Ok", value: 5 });
@@ -116,10 +116,10 @@ Deno.test("TaskResult.chain applies function when Ok", async () => {
 
 Deno.test("TaskResult.chain returns Err when function returns Err", async () => {
   const validatePositive = (n: number): TaskResult<string, number> =>
-    n > 0 ? TaskResult.of(n) : TaskResult.err("Must be positive");
+    n > 0 ? TaskResult.ok(n) : TaskResult.err("Must be positive");
 
   const result = await pipe(
-    TaskResult.of<string, number>(-1),
+    TaskResult.ok<string, number>(-1),
     TaskResult.chain(validatePositive),
   )();
   assertEquals(result, { kind: "Error", error: "Must be positive" });
@@ -131,7 +131,7 @@ Deno.test("TaskResult.chain propagates Err without calling function", async () =
     TaskResult.err<string, number>("error"),
     TaskResult.chain((_n: number) => {
       called = true;
-      return TaskResult.of<string, number>(_n);
+      return TaskResult.ok<string, number>(_n);
     }),
   )();
   assertStrictEquals(called, false);
@@ -140,9 +140,9 @@ Deno.test("TaskResult.chain propagates Err without calling function", async () =
 
 Deno.test("TaskResult.chain composes multiple async steps", async () => {
   const result = await pipe(
-    TaskResult.of<string, number>(1),
-    TaskResult.chain((n: number) => TaskResult.of<string, number>(n + 1)),
-    TaskResult.chain((n: number) => TaskResult.of<string, number>(n * 10)),
+    TaskResult.ok<string, number>(1),
+    TaskResult.chain((n: number) => TaskResult.ok<string, number>(n + 1)),
+    TaskResult.chain((n: number) => TaskResult.ok<string, number>(n * 10)),
   )();
   assertEquals(result, { kind: "Ok", value: 20 });
 });
@@ -153,7 +153,7 @@ Deno.test("TaskResult.chain composes multiple async steps", async () => {
 
 Deno.test("TaskResult.fold calls onOk for Ok", async () => {
   const result = await pipe(
-    TaskResult.of<string, number>(5),
+    TaskResult.ok<string, number>(5),
     TaskResult.fold(
       (e: string) => `Error: ${e}`,
       (n: number) => `Value: ${n}`,
@@ -179,7 +179,7 @@ Deno.test("TaskResult.fold calls onErr for Err", async () => {
 
 Deno.test("TaskResult.match calls ok handler for Ok", async () => {
   const result = await pipe(
-    TaskResult.of<string, number>(5),
+    TaskResult.ok<string, number>(5),
     TaskResult.match({
       ok: (n: number) => `got ${n}`,
       err: (e: string) => `failed: ${e}`,
@@ -204,7 +204,7 @@ Deno.test("TaskResult.match is data-last (returns a function first)", async () =
     ok: (n) => `val: ${n}`,
     err: (e) => `err: ${e}`,
   });
-  const okResult = await handler(TaskResult.of<string, number>(3))();
+  const okResult = await handler(TaskResult.ok<string, number>(3))();
   assertStrictEquals(okResult, "val: 3");
   const errResult = await handler(TaskResult.err<string, number>("x"))();
   assertStrictEquals(errResult, "err: x");
@@ -217,10 +217,10 @@ Deno.test("TaskResult.match is data-last (returns a function first)", async () =
 Deno.test("TaskResult.recover returns original Ok without calling fallback", async () => {
   let called = false;
   const result = await pipe(
-    TaskResult.of<string, number>(5),
+    TaskResult.ok<string, number>(5),
     TaskResult.recover((_e: string) => {
       called = true;
-      return TaskResult.of<string, number>(99);
+      return TaskResult.ok<string, number>(99);
     }),
   )();
   assertStrictEquals(called, false);
@@ -230,7 +230,7 @@ Deno.test("TaskResult.recover returns original Ok without calling fallback", asy
 Deno.test("TaskResult.recover provides fallback for Err", async () => {
   const result = await pipe(
     TaskResult.err<string, number>("error"),
-    TaskResult.recover((_e: string) => TaskResult.of<string, number>(99)),
+    TaskResult.recover((_e: string) => TaskResult.ok<string, number>(99)),
   )();
   assertEquals(result, { kind: "Ok", value: 99 });
 });
@@ -241,7 +241,7 @@ Deno.test("TaskResult.recover passes the error to the fallback function", async 
     TaskResult.err<string, number>("original error"),
     TaskResult.recover((e: string) => {
       receivedError = e;
-      return TaskResult.of<string, number>(0);
+      return TaskResult.ok<string, number>(0);
     }),
   )();
   assertStrictEquals(receivedError, "original error");
@@ -253,7 +253,7 @@ Deno.test("TaskResult.recover passes the error to the fallback function", async 
 
 Deno.test("TaskResult.getOrElse returns value for Ok", async () => {
   const result = await pipe(
-    TaskResult.of<string, number>(5),
+    TaskResult.ok<string, number>(5),
     TaskResult.getOrElse(0),
   )();
   assertStrictEquals(result, 5);
@@ -274,7 +274,7 @@ Deno.test("TaskResult.getOrElse returns default for Err", async () => {
 Deno.test("TaskResult.tap executes side effect on Ok and returns original", async () => {
   let sideEffect = 0;
   const result = await pipe(
-    TaskResult.of<string, number>(5),
+    TaskResult.ok<string, number>(5),
     TaskResult.tap((n: number) => {
       sideEffect = n;
     }),
@@ -301,10 +301,10 @@ Deno.test("TaskResult.tap does not execute side effect on Err", async () => {
 
 Deno.test("TaskResult composes well in a pipe chain", async () => {
   const result = await pipe(
-    TaskResult.of<string, number>(5),
+    TaskResult.ok<string, number>(5),
     TaskResult.map((n: number) => n * 2),
     TaskResult.chain((n: number) =>
-      n > 5 ? TaskResult.of<string, number>(n) : TaskResult.err<string, number>("Too small")
+      n > 5 ? TaskResult.ok<string, number>(n) : TaskResult.err<string, number>("Too small")
     ),
     TaskResult.getOrElse(0),
   )();
@@ -313,10 +313,10 @@ Deno.test("TaskResult composes well in a pipe chain", async () => {
 
 Deno.test("TaskResult pipe short-circuits on Err", async () => {
   const result = await pipe(
-    TaskResult.of<string, number>(2),
+    TaskResult.ok<string, number>(2),
     TaskResult.map((n: number) => n * 2),
     TaskResult.chain((n: number) =>
-      n > 5 ? TaskResult.of<string, number>(n) : TaskResult.err<string, number>("Too small")
+      n > 5 ? TaskResult.ok<string, number>(n) : TaskResult.err<string, number>("Too small")
     ),
     TaskResult.getOrElse(0),
   )();
@@ -335,14 +335,16 @@ Deno.test("TaskResult tryCatch integrates with pipe chain", async () => {
   assertStrictEquals(result, 50);
 });
 
-
 // ---------------------------------------------------------------------------
 // retry
 // ---------------------------------------------------------------------------
 
 Deno.test("TaskResult.retry returns Ok without retrying", async () => {
   let calls = 0;
-  const task: TaskResult<string, number> = () => { calls++; return TaskResult.of<string, number>(42)(); };
+  const task: TaskResult<string, number> = () => {
+    calls++;
+    return TaskResult.ok<string, number>(42)();
+  };
   const result = await pipe(task, TaskResult.retry({ attempts: 3 }))();
   assertEquals(result, { kind: "Ok", value: 42 });
   assertStrictEquals(calls, 1);
@@ -354,7 +356,7 @@ Deno.test("TaskResult.retry retries on Err and returns Ok on eventual success", 
     calls++;
     return calls < 3
       ? TaskResult.err<string, number>("fail")()
-      : TaskResult.of<string, number>(42)();
+      : TaskResult.ok<string, number>(42)();
   };
   const result = await pipe(task, TaskResult.retry({ attempts: 3 }))();
   assertEquals(result, { kind: "Ok", value: 42 });
@@ -363,7 +365,10 @@ Deno.test("TaskResult.retry retries on Err and returns Ok on eventual success", 
 
 Deno.test("TaskResult.retry returns last Err after exhausting all attempts", async () => {
   let calls = 0;
-  const task: TaskResult<string, number> = () => { calls++; return TaskResult.err<string, number>("boom")(); };
+  const task: TaskResult<string, number> = () => {
+    calls++;
+    return TaskResult.err<string, number>("boom")();
+  };
   const result = await pipe(task, TaskResult.retry({ attempts: 3 }))();
   assertEquals(result, { kind: "Error", error: "boom" });
   assertStrictEquals(calls, 3);
@@ -371,7 +376,10 @@ Deno.test("TaskResult.retry returns last Err after exhausting all attempts", asy
 
 Deno.test("TaskResult.retry with attempts: 1 does not retry", async () => {
   let calls = 0;
-  const task: TaskResult<string, number> = () => { calls++; return TaskResult.err<string, number>("boom")(); };
+  const task: TaskResult<string, number> = () => {
+    calls++;
+    return TaskResult.err<string, number>("boom")();
+  };
   const result = await pipe(task, TaskResult.retry({ attempts: 1 }))();
   assertEquals(result, { kind: "Error", error: "boom" });
   assertStrictEquals(calls, 1);
@@ -379,7 +387,10 @@ Deno.test("TaskResult.retry with attempts: 1 does not retry", async () => {
 
 Deno.test("TaskResult.retry when predicate stops retry on non-matching error", async () => {
   let calls = 0;
-  const task: TaskResult<string, number> = () => { calls++; return TaskResult.err<string, number>("auth-error")(); };
+  const task: TaskResult<string, number> = () => {
+    calls++;
+    return TaskResult.err<string, number>("auth-error")();
+  };
   const result = await pipe(
     task,
     TaskResult.retry({ attempts: 3, when: (e) => e !== "auth-error" }),
@@ -394,7 +405,7 @@ Deno.test("TaskResult.retry when predicate allows retry on matching error", asyn
     calls++;
     return calls < 3
       ? TaskResult.err<string, number>("network-error")()
-      : TaskResult.of<string, number>(42)();
+      : TaskResult.ok<string, number>(42)();
   };
   const result = await pipe(
     task,
@@ -409,9 +420,31 @@ Deno.test("TaskResult.retry calls backoff function with retry attempt number", a
   const task: TaskResult<string, number> = () => TaskResult.err<string, number>("fail")();
   await pipe(
     task,
-    TaskResult.retry({ attempts: 3, backoff: (n) => { recorded.push(n); return 0; } }),
+    TaskResult.retry({
+      attempts: 3,
+      backoff: (n) => {
+        recorded.push(n);
+        return 0;
+      },
+    }),
   )();
   assertEquals(recorded, [1, 2]);
+});
+
+Deno.test({
+  name: "TaskResult.retry applies fixed numeric backoff between retries",
+  sanitizeOps: false,
+  sanitizeResources: false,
+  fn: async () => {
+    let calls = 0;
+    const task: TaskResult<string, number> = () => {
+      calls++;
+      return TaskResult.err<string, number>("fail")();
+    };
+    const result = await pipe(task, TaskResult.retry({ attempts: 2, backoff: 1 }))();
+    assertEquals(result, { kind: "Error", error: "fail" });
+    assertStrictEquals(calls, 2);
+  },
 });
 
 // ---------------------------------------------------------------------------
@@ -420,7 +453,7 @@ Deno.test("TaskResult.retry calls backoff function with retry attempt number", a
 
 Deno.test("TaskResult.timeout returns Ok when task resolves before timeout", async () => {
   const result = await pipe(
-    TaskResult.of<string, number>(42),
+    TaskResult.ok<string, number>(42),
     TaskResult.timeout(100, () => "timed out"),
   )();
   assertEquals(result, { kind: "Ok", value: 42 });

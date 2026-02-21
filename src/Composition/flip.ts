@@ -6,13 +6,13 @@
  * ```ts
  * // Original data-last (for pipe)
  * pipe(
- *   Option.of(5),
+ *   Option.some(5),
  *   Option.map(n => n * 2)
  * ); // Some(10)
  *
  * // Flipped to data-first
  * const mapFirst = flip(Option.map);
- * mapFirst(Option.of(5))(n => n * 2); // Some(10)
+ * mapFirst(Option.some(5))(n => n * 2); // Some(10)
  * ```
  *
  * @see {@link uncurry} for converting curried functions to multi-argument functions

@@ -17,7 +17,7 @@
  *
  * // With library functions
  * const greeting = pipe(
- *   Option.of("Alice"),
+ *   Option.some("Alice"),
  *   Option.map(name => name.toUpperCase()),
  *   Option.map(name => `Hello, ${name}!`),
  *   Option.getOrElse("Hello!")

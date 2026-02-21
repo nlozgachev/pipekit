@@ -66,7 +66,7 @@ Deno.test("compose - integration with Option", () => {
 
   const fn = compose(getOrDefault, toUpper);
 
-  assertStrictEquals(fn(Option.of("hello")), "HELLO");
+  assertStrictEquals(fn(Option.some("hello")), "HELLO");
   assertStrictEquals(fn(Option.none()), "none");
 });
 
@@ -76,7 +76,7 @@ Deno.test("compose - integration with Result", () => {
 
   const fn = compose(getOrDefault, doubleResult);
 
-  assertStrictEquals(fn(Result.of<string, number>(5)), 10);
+  assertStrictEquals(fn(Result.ok<number>(5)), 10);
   assertStrictEquals(fn(Result.err("err") as Result<string, number>), 0);
 });
 

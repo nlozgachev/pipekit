@@ -12,14 +12,14 @@ import { WithErrors, WithKind, WithValue } from "./InternalTypes.ts";
  * @example
  * ```ts
  * const validateName = (name: string): Validation<string, string> =>
- *   name.length > 0 ? Validation.of(name) : Validation.fail("Name is required");
+ *   name.length > 0 ? Validation.valid(name) : Validation.invalid("Name is required");
  *
  * const validateAge = (age: number): Validation<string, number> =>
- *   age >= 0 ? Validation.of(age) : Validation.fail("Age must be positive");
+ *   age >= 0 ? Validation.valid(age) : Validation.invalid("Age must be positive");
  *
  * // Accumulates all errors using ap
  * pipe(
- *   Validation.of((name: string) => (age: number) => ({ name, age })),
+ *   Validation.valid((name: string) => (age: number) => ({ name, age })),
  *   Validation.ap(validateName("")),
  *   Validation.ap(validateAge(-1))
  * );
@@ -37,36 +37,44 @@ export namespace Validation {
    *
    * @example
    * ```ts
-   * Validation.of(42); // Valid(42)
+   * Validation.valid(42); // Valid(42)
    * ```
    */
-  export const of = <E, A>(value: A): Validation<E, A> => ({
+  export const valid = <E, A>(value: A): Validation<E, A> => ({
     kind: "Valid",
     value,
   });
 
   /**
-   * Creates a valid Validation with the given value.
+   * Creates an invalid Validation from a single error.
+   *
+   * @example
+   * ```ts
+   * Validation.invalid("Invalid input");
+   * ```
    */
-  export const toValid = <A>(value: A): Valid<A> => ({ kind: "Valid", value });
+  export const invalid = <E>(error: E): Invalid<E> => ({
+    kind: "Invalid",
+    errors: [error],
+  });
+
+  /**
+   * Creates an invalid Validation from multiple errors.
+   *
+   * @example
+   * ```ts
+   * Validation.invalidAll(["Invalid input"]);
+   * ```
+   */
+  export const invalidAll = <E>(errors: NonEmptyList<E>): Invalid<E> => ({
+    kind: "Invalid",
+    errors,
+  });
 
   /**
    * Type guard that checks if a Validation is valid.
    */
   export const isValid = <E, A>(data: Validation<E, A>): data is Valid<A> => data.kind === "Valid";
-
-  /**
-   * Creates an invalid Validation with the given errors.
-   *
-   * @example
-   * ```ts
-   * Validation.toInvalid(["Email is invalid", "Password too short"]);
-   * ```
-   */
-  export const toInvalid = <E>(errors: NonEmptyList<E>): Invalid<E> => ({
-    kind: "Invalid",
-    errors,
-  });
 
   /**
    * Type guard that checks if a Validation is invalid.
@@ -75,26 +83,16 @@ export namespace Validation {
     data.kind === "Invalid";
 
   /**
-   * Creates an invalid Validation from a single error.
-   *
-   * @example
-   * ```ts
-   * Validation.fail("Invalid input");
-   * ```
-   */
-  export const fail = <E, A>(error: E): Validation<E, A> => toInvalid([error]);
-
-  /**
    * Transforms the success value inside a Validation.
    *
    * @example
    * ```ts
-   * pipe(Validation.of(5), Validation.map(n => n * 2)); // Valid(10)
-   * pipe(Validation.fail("oops"), Validation.map(n => n * 2)); // Invalid(["oops"])
+   * pipe(Validation.valid(5), Validation.map(n => n * 2)); // Valid(10)
+   * pipe(Validation.invalid("oops"), Validation.map(n => n * 2)); // Invalid(["oops"])
    * ```
    */
   export const map = <A, B>(f: (a: A) => B) => <E>(data: Validation<E, A>): Validation<E, B> =>
-    isValid(data) ? of(f(data.value)) : data;
+    isValid(data) ? valid(f(data.value)) : data;
 
   /**
    * Chains Validation computations. If the first is Valid, passes the value to f.
@@ -105,10 +103,10 @@ export namespace Validation {
    * @example
    * ```ts
    * const validatePositive = (n: number): Validation<string, number> =>
-   *   n > 0 ? Validation.of(n) : Validation.fail("Must be positive");
+   *   n > 0 ? Validation.valid(n) : Validation.invalid("Must be positive");
    *
-   * pipe(Validation.of(5), Validation.chain(validatePositive)); // Valid(5)
-   * pipe(Validation.of(-1), Validation.chain(validatePositive)); // Invalid(["Must be positive"])
+   * pipe(Validation.valid(5), Validation.chain(validatePositive)); // Valid(5)
+   * pipe(Validation.valid(-1), Validation.chain(validatePositive)); // Invalid(["Must be positive"])
    * ```
    */
   export const chain =
@@ -123,26 +121,26 @@ export namespace Validation {
    * ```ts
    * const add = (a: number) => (b: number) => a + b;
    * pipe(
-   *   Validation.of(add),
-   *   Validation.ap(Validation.of(5)),
-   *   Validation.ap(Validation.of(3))
+   *   Validation.valid(add),
+   *   Validation.ap(Validation.valid(5)),
+   *   Validation.ap(Validation.valid(3))
    * ); // Valid(8)
    *
    * pipe(
-   *   Validation.of(add),
-   *   Validation.ap(Validation.fail<string, number>("bad a")),
-   *   Validation.ap(Validation.fail<string, number>("bad b"))
+   *   Validation.valid(add),
+   *   Validation.ap(Validation.invalid<string, number>("bad a")),
+   *   Validation.ap(Validation.invalid<string, number>("bad b"))
    * ); // Invalid(["bad a", "bad b"])
    * ```
    */
   export const ap =
     <E, A>(arg: Validation<E, A>) => <B>(data: Validation<E, (a: A) => B>): Validation<E, B> => {
-      if (isValid(data) && isValid(arg)) return of(data.value(arg.value));
+      if (isValid(data) && isValid(arg)) return valid(data.value(arg.value));
       const errors = [
         ...(isInvalid(data) ? data.errors : []),
         ...(isInvalid(arg) ? arg.errors : []),
       ];
-      return isNonEmptyList(errors) ? toInvalid(errors) : of(data as never);
+      return isNonEmptyList(errors) ? invalidAll(errors) : valid(data as never);
     };
 
   /**
@@ -151,7 +149,7 @@ export namespace Validation {
    * @example
    * ```ts
    * pipe(
-   *   Validation.of(42),
+   *   Validation.valid(42),
    *   Validation.fold(
    *     errors => `Errors: ${errors.join(", ")}`,
    *     value => `Value: ${value}`
@@ -191,8 +189,8 @@ export namespace Validation {
    *
    * @example
    * ```ts
-   * pipe(Validation.of(5), Validation.getOrElse(0)); // 5
-   * pipe(Validation.fail("oops"), Validation.getOrElse(0)); // 0
+   * pipe(Validation.valid(5), Validation.getOrElse(0)); // 5
+   * pipe(Validation.invalid("oops"), Validation.getOrElse(0)); // 0
    * ```
    */
   export const getOrElse = <E, A>(defaultValue: A) => (data: Validation<E, A>): A =>
@@ -204,7 +202,7 @@ export namespace Validation {
    * @example
    * ```ts
    * pipe(
-   *   Validation.of(5),
+   *   Validation.valid(5),
    *   Validation.tap(n => console.log("Value:", n)),
    *   Validation.map(n => n * 2)
    * );
@@ -241,13 +239,13 @@ export namespace Validation {
    * @example
    * ```ts
    * Validation.combine(
-   *   Validation.fail("Error 1"),
-   *   Validation.fail("Error 2")
+   *   Validation.invalid("Error 1"),
+   *   Validation.invalid("Error 2")
    * ); // Invalid(["Error 1", "Error 2"])
    *
    * Validation.combine(
-   *   Validation.of("a"),
-   *   Validation.of("b")
+   *   Validation.valid("a"),
+   *   Validation.valid("b")
    * ); // Valid("b")
    * ```
    */
@@ -262,7 +260,7 @@ export namespace Validation {
       ...(isInvalid(first) ? first.errors : []),
       ...(isInvalid(second) ? second.errors : []),
     ];
-    return isNonEmptyList(errors) ? toInvalid(errors) : second;
+    return isNonEmptyList(errors) ? invalidAll(errors) : second;
   };
 
   /**

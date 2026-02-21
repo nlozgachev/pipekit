@@ -11,12 +11,12 @@ import { Validation } from "./Validation.ts";
  * ```ts
  * const validateName = (name: string): TaskValidation<string, string> =>
  *   name.length > 0
- *     ? TaskValidation.of(name)
- *     : TaskValidation.fail("Name is required");
+ *     ? TaskValidation.valid(name)
+ *     : TaskValidation.invalid("Name is required");
  *
  * // Accumulate errors from multiple async validations using ap
  * pipe(
- *   TaskValidation.of((name: string) => (age: number) => ({ name, age })),
+ *   TaskValidation.valid((name: string) => (age: number) => ({ name, age })),
  *   TaskValidation.ap(validateName("")),
  *   TaskValidation.ap(validateAge(-1))
  * )();
@@ -29,18 +29,27 @@ export namespace TaskValidation {
   /**
    * Wraps a value in a valid TaskValidation.
    */
-  export const of = <E, A>(value: A): TaskValidation<E, A> => Task.of(Validation.of(value));
+  export const valid = <E, A>(value: A): TaskValidation<E, A> =>
+    Task.resolve(Validation.valid(value));
 
   /**
    * Creates a failed TaskValidation with a single error.
    */
-  export const fail = <E, A>(error: E): TaskValidation<E, A> => Task.of(Validation.fail(error));
+  export const invalid = <E, A>(error: E): TaskValidation<E, A> =>
+    Task.resolve(Validation.invalid(error));
+
+  /**
+   * Creates an invalid TaskValidation from multiple errors.
+   */
+  export const invalidAll = <E, A>(errors: NonEmptyList<E>): TaskValidation<E, A> =>
+    Task.resolve(Validation.invalidAll(errors));
 
   /**
    * Lifts a Validation into a TaskValidation.
    */
-  export const fromValidation = <E, A>(validation: Validation<E, A>): TaskValidation<E, A> =>
-    Task.of(validation);
+  export const fromValidation = <E, A>(
+    validation: Validation<E, A>,
+  ): TaskValidation<E, A> => Task.resolve(validation);
 
   /**
    * Creates a TaskValidation from a Promise-returning function.
@@ -61,8 +70,8 @@ export namespace TaskValidation {
   ): TaskValidation<E, A> =>
   () =>
     f()
-      .then(Validation.of<E, A>)
-      .catch((e) => Validation.fail(onError(e)));
+      .then(Validation.valid<E, A>)
+      .catch((e) => Validation.invalid(onError(e)));
 
   /**
    * Transforms the success value inside a TaskValidation.
@@ -83,7 +92,7 @@ export namespace TaskValidation {
       Task.chain((validation: Validation<E, A>) =>
         Validation.isValid(validation)
           ? f(validation.value)
-          : Task.of(Validation.toInvalid(validation.errors))
+          : Task.resolve(Validation.invalidAll(validation.errors))
       )(data);
 
   /**
@@ -94,7 +103,7 @@ export namespace TaskValidation {
    * @example
    * ```ts
    * pipe(
-   *   TaskValidation.of((name: string) => (age: number) => ({ name, age })),
+   *   TaskValidation.valid((name: string) => (age: number) => ({ name, age })),
    *   TaskValidation.ap(validateName(name)),
    *   TaskValidation.ap(validateAge(age))
    * )();
@@ -108,10 +117,12 @@ export namespace TaskValidation {
   /**
    * Extracts a value from a TaskValidation by providing handlers for both cases.
    */
-  export const fold =
-    <E, A, B>(onInvalid: (errors: NonEmptyList<E>) => B, onValid: (a: A) => B) =>
-    (data: TaskValidation<E, A>): Task<B> =>
-      Task.map(Validation.fold<E, A, B>(onInvalid, onValid))(data);
+  export const fold = <E, A, B>(
+    onInvalid: (errors: NonEmptyList<E>) => B,
+    onValid: (a: A) => B,
+  ) =>
+  (data: TaskValidation<E, A>): Task<B> =>
+    Task.map(Validation.fold<E, A, B>(onInvalid, onValid))(data);
 
   /**
    * Pattern matches on a TaskValidation, returning a Task of the result.
@@ -127,9 +138,11 @@ export namespace TaskValidation {
    * )();
    * ```
    */
-  export const match =
-    <E, A, B>(cases: { valid: (a: A) => B; invalid: (errors: NonEmptyList<E>) => B }) =>
-    (data: TaskValidation<E, A>): Task<B> => Task.map(Validation.match<E, A, B>(cases))(data);
+  export const match = <E, A, B>(cases: {
+    valid: (a: A) => B;
+    invalid: (errors: NonEmptyList<E>) => B;
+  }) =>
+  (data: TaskValidation<E, A>): Task<B> => Task.map(Validation.match<E, A, B>(cases))(data);
 
   /**
    * Returns the success value or a default value if the TaskValidation is invalid.
@@ -152,6 +165,6 @@ export namespace TaskValidation {
     <E, A>(fallback: () => TaskValidation<E, A>) =>
     (data: TaskValidation<E, A>): TaskValidation<E, A> =>
       Task.chain((validation: Validation<E, A>) =>
-        Validation.isValid(validation) ? Task.of(validation) : fallback()
+        Validation.isValid(validation) ? Task.resolve(validation) : fallback()
       )(data);
 }

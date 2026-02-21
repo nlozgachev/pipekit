@@ -6,7 +6,7 @@
  * ```ts
  * // Debugging a pipeline
  * pipe(
- *   Option.of(5),
+ *   Option.some(5),
  *   tap(x => console.log("Before map:", x)),
  *   Option.map(n => n * 2),
  *   tap(x => console.log("After map:", x)),

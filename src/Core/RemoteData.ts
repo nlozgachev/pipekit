@@ -55,11 +55,6 @@ export namespace RemoteData {
   });
 
   /**
-   * Wraps a value in a Success RemoteData. Alias for `success`.
-   */
-  export const of = success;
-
-  /**
    * Type guard that checks if a RemoteData is NotAsked.
    */
   export const isNotAsked = <E, A>(data: RemoteData<E, A>): data is NotAsked =>
@@ -88,7 +83,7 @@ export namespace RemoteData {
    *
    * @example
    * ```ts
-   * pipe(RemoteData.of(5), RemoteData.map(n => n * 2)); // Success(10)
+   * pipe(RemoteData.success(5), RemoteData.map(n => n * 2)); // Success(10)
    * pipe(RemoteData.loading(), RemoteData.map(n => n * 2)); // Loading
    * ```
    */
@@ -113,8 +108,8 @@ export namespace RemoteData {
    * @example
    * ```ts
    * pipe(
-   *   RemoteData.of(5),
-   *   RemoteData.chain(n => n > 0 ? RemoteData.of(n) : RemoteData.failure("negative"))
+   *   RemoteData.success(5),
+   *   RemoteData.chain(n => n > 0 ? RemoteData.success(n) : RemoteData.failure("negative"))
    * );
    * ```
    */
@@ -129,9 +124,9 @@ export namespace RemoteData {
    * ```ts
    * const add = (a: number) => (b: number) => a + b;
    * pipe(
-   *   RemoteData.of(add),
-   *   RemoteData.ap(RemoteData.of(5)),
-   *   RemoteData.ap(RemoteData.of(3))
+   *   RemoteData.success(add),
+   *   RemoteData.ap(RemoteData.success(5)),
+   *   RemoteData.ap(RemoteData.success(3))
    * ); // Success(8)
    * ```
    */
@@ -221,7 +216,7 @@ export namespace RemoteData {
    *
    * @example
    * ```ts
-   * pipe(RemoteData.of(5), RemoteData.getOrElse(0)); // 5
+   * pipe(RemoteData.success(5), RemoteData.getOrElse(0)); // 5
    * pipe(RemoteData.loading(), RemoteData.getOrElse(0)); // 0
    * ```
    */
@@ -234,7 +229,7 @@ export namespace RemoteData {
    * @example
    * ```ts
    * pipe(
-   *   RemoteData.of(5),
+   *   RemoteData.success(5),
    *   RemoteData.tap(n => console.log("Value:", n)),
    *   RemoteData.map(n => n * 2)
    * );
@@ -269,7 +264,7 @@ export namespace RemoteData {
    * @example
    * ```ts
    * pipe(
-   *   RemoteData.of(42),
+   *   RemoteData.success(42),
    *   RemoteData.toResult(() => "not loaded")
    * ); // Ok(42)
    * ```

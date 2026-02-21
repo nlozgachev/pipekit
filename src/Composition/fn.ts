@@ -4,7 +4,7 @@
  * @example
  * ```ts
  * identity(42); // 42
- * pipe(Option.of(5), Option.fold(() => 0, identity)); // 5
+ * pipe(Option.some(5), Option.fold(() => 0, identity)); // 5
  * ```
  */
 export const identity = <A>(a: A): A => a;

@@ -1,7 +1,4 @@
-import {
-  assertEquals,
-  assertStrictEquals,
-} from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assertEquals, assertStrictEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { Result } from "../Result.ts";
 import { pipe } from "../../Composition/pipe.ts";
 
@@ -9,8 +6,8 @@ import { pipe } from "../../Composition/pipe.ts";
 // of / ok
 // ---------------------------------------------------------------------------
 
-Deno.test("Result.of wraps a value in Ok", () => {
-  const result = Result.of<string, number>(42);
+Deno.test("Result.ok wraps a value in Ok", () => {
+  const result = Result.ok<number>(42);
   assertEquals(result, { kind: "Ok", value: 42 });
 });
 
@@ -18,8 +15,8 @@ Deno.test("Result.ok creates an Ok with the given value", () => {
   assertEquals(Result.ok("hello"), { kind: "Ok", value: "hello" });
 });
 
-Deno.test("Result.of and Result.ok produce equivalent results", () => {
-  assertEquals(Result.of<never, number>(10), Result.ok(10));
+Deno.test("Result.ok and Result.ok produce equivalent results", () => {
+  assertEquals(Result.ok<number>(10), Result.ok(10));
 });
 
 // ---------------------------------------------------------------------------
@@ -361,7 +358,7 @@ Deno.test("Result.recoverUnless passes through Ok unchanged", () => {
 Deno.test("Result.ap applies Ok function to Ok value", () => {
   const add = (a: number) => (b: number) => a + b;
   const result = pipe(
-    Result.of<string, typeof add>(add),
+    Result.ok<typeof add>(add),
     Result.ap(Result.ok(5) as Result<string, number>),
     Result.ap(Result.ok(3) as Result<string, number>),
   );
@@ -378,7 +375,7 @@ Deno.test("Result.ap returns Err when function is Err", () => {
 
 Deno.test("Result.ap returns Err when value is Err", () => {
   const result = pipe(
-    Result.of<string, (n: number) => number>((n) => n * 2),
+    Result.ok<(n: number) => number>((n) => n * 2),
     Result.ap(Result.err("val error") as Result<string, number>),
   );
   assertEquals(result, { kind: "Error", error: "val error" });
@@ -418,9 +415,7 @@ Deno.test("Result composes well in a pipe chain", () => {
     divide(10, 2),
     Result.map((n: number) => n * 3),
     Result.chain((n: number) =>
-      n > 10
-        ? Result.ok(n)
-        : (Result.err("Too small") as Result<string, number>),
+      n > 10 ? Result.ok(n) : (Result.err("Too small") as Result<string, number>)
     ),
     Result.getOrElse(0),
   );
