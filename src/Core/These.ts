@@ -159,8 +159,7 @@ export namespace These {
    * ```
    */
   export const chainFirst =
-    <A, B, C>(f: (a: A) => These<C, B>) =>
-    (data: These<A, B>): These<C, B> => {
+    <A, B, C>(f: (a: A) => These<C, B>) => (data: These<A, B>): These<C, B> => {
       if (isSecond(data)) return data;
       return f(data.first);
     };
@@ -179,8 +178,7 @@ export namespace These {
    * ```
    */
   export const chainSecond =
-    <A, B, D>(f: (b: B) => These<A, D>) =>
-    (data: These<A, B>): These<A, D> => {
+    <A, B, D>(f: (b: B) => These<A, D>) => (data: These<A, B>): These<A, D> => {
       if (isFirst(data)) return data;
       return f(data.second);
     };

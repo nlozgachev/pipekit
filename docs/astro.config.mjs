@@ -87,6 +87,7 @@ export default defineConfig({
             { label: "These — inclusive OR", slug: "guides/these" },
             { label: "Lens — nested updates", slug: "guides/lens" },
             { label: "Optional — nullable paths", slug: "guides/optional" },
+            { label: "Reader — deferred dependencies", slug: "guides/reader" },
             { label: "Brand — distinguishing values", slug: "guides/brand" },
             { label: "Arr — array utilities", slug: "guides/arr" },
             { label: "Rec — record utilities", slug: "guides/rec" },

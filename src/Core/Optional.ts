@@ -57,17 +57,15 @@ export namespace Optional {
    * const bioOpt = Optional.prop<Profile>()("bio");
    * ```
    */
-  export const prop = <S>() =>
-  <K extends OptionalKeys<S>>(key: K): Optional<S, NonNullable<S[K]>> =>
-    make(
-      (s) => {
-        const val = s[key];
-        return val != null
-          ? Option.some(val as NonNullable<S[K]>)
-          : Option.none();
-      },
-      (a) => (s) => ({ ...s, [key]: a } as S),
-    );
+  export const prop =
+    <S>() => <K extends OptionalKeys<S>>(key: K): Optional<S, NonNullable<S[K]>> =>
+      make(
+        (s) => {
+          const val = s[key];
+          return val != null ? Option.some(val as NonNullable<S[K]>) : Option.none();
+        },
+        (a) => (s) => ({ ...s, [key]: a } as S),
+      );
 
   /**
    * Creates an Optional that focuses on an element at a given index in an array.
@@ -135,11 +133,10 @@ export namespace Optional {
    * pipe(profile, Optional.getOrElse(bioOpt)("no bio"));
    * ```
    */
-  export const getOrElse =
-    <S, A>(opt: Optional<S, A>) => (defaultValue: A) => (s: S): A => {
-      const val = opt.get(s);
-      return val.kind === "Some" ? val.value : defaultValue;
-    };
+  export const getOrElse = <S, A>(opt: Optional<S, A>) => (defaultValue: A) => (s: S): A => {
+    const val = opt.get(s);
+    return val.kind === "Some" ? val.value : defaultValue;
+  };
 
   /**
    * Extracts a value from an Optional focus using handlers for the present
@@ -168,8 +165,11 @@ export namespace Optional {
    * ```
    */
   export const match =
-    <S, A>(opt: Optional<S, A>) => <B>(cases: { none: () => B; some: (a: A) => B }) =>
-    (s: S): B => {
+    <S, A>(opt: Optional<S, A>) =>
+    <B>(cases: { none: () => B; some: (a: A) => B }) =>
+    (
+      s: S,
+    ): B => {
       const val = opt.get(s);
       return val.kind === "Some" ? cases.some(val.value) : cases.none();
     };
@@ -216,9 +216,7 @@ export namespace Optional {
       make(
         (s) => {
           const mid = outer.get(s);
-          return mid.kind === "None"
-            ? Option.none()
-            : Option.some(inner.get(mid.value));
+          return mid.kind === "None" ? Option.none() : Option.some(inner.get(mid.value));
         },
         (b) => (s) => {
           const mid = outer.get(s);

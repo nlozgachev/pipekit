@@ -52,8 +52,7 @@ export namespace Lens {
    * const nameLens = Lens.prop<User>()("name");
    * ```
    */
-  export const prop = <S>() =>
-  <K extends keyof S>(key: K): Lens<S, S[K]> =>
+  export const prop = <S>() => <K extends keyof S>(key: K): Lens<S, S[K]> =>
     make(
       (s) => s[key],
       (a) => (s) => ({ ...s, [key]: a } as S),
@@ -102,12 +101,11 @@ export namespace Lens {
    * );
    * ```
    */
-  export const andThen =
-    <A, B>(inner: Lens<A, B>) => <S>(outer: Lens<S, A>): Lens<S, B> =>
-      make(
-        (s) => inner.get(outer.get(s)),
-        (b) => (s) => outer.set(inner.set(b)(outer.get(s)))(s),
-      );
+  export const andThen = <A, B>(inner: Lens<A, B>) => <S>(outer: Lens<S, A>): Lens<S, B> =>
+    make(
+      (s) => inner.get(outer.get(s)),
+      (b) => (s) => outer.set(inner.set(b)(outer.get(s)))(s),
+    );
 
   /**
    * Composes a Lens with an Optional, producing an Optional.

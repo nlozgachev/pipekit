@@ -12,7 +12,8 @@ type Profile = { username: string; bio?: string };
 
 Deno.test("Optional.make constructs an optional from getter and setter", () => {
   const firstChar = Optional.make(
-    (s: string) => s.length > 0 ? { kind: "Some" as const, value: s[0] } : { kind: "None" as const },
+    (s: string) =>
+      s.length > 0 ? { kind: "Some" as const, value: s[0] } : { kind: "None" as const },
     (c) => (s) => s.length > 0 ? c + s.slice(1) : s,
   );
   assertEquals(firstChar.get("hello"), { kind: "Some", value: "h" });

@@ -1,6 +1,7 @@
 export * from "./Arr.ts";
 export * from "./Lens.ts";
 export * from "./Option.ts";
+export * from "./Reader.ts";
 export * from "./Optional.ts";
 export * from "./Rec.ts";
 export * from "./RemoteData.ts";
