@@ -20,8 +20,7 @@ Some operations naturally produce two pieces of information at once:
 - Parsing a number from a string with extra whitespace: the number is valid, and the input was
   malformed
 - A migration that completed with some rows skipped
-- An API response that returned data and also included deprecation notices
-- A computation that succeeded using a fallback when the primary source was unavailable
+- A computation that produced a result alongside a diagnostic notice
 
 In these cases, discarding either piece loses information. `Both` holds them together.
 
@@ -55,8 +54,7 @@ parseNumber("abc");    // Second("Not a number")
 
 ## Transforming values
 
-`mapFirst` transforms the first value in `First` and `Both`, leaving `Second` untouched. In
-`Both`, the second value is preserved:
+`mapFirst` transforms the first value in `First` and `Both`, leaving `Second` untouched:
 
 ```ts
 pipe(These.first(5), These.mapFirst((n) => n * 2));           // First(10)
@@ -71,12 +69,12 @@ pipe(These.second("warn"), These.mapSecond((e) => e.toUpperCase())); // Second("
 pipe(These.both(5, "warn"), These.mapSecond((e) => e.toUpperCase())); // Both(5, "WARN")
 ```
 
-`bimap` transforms both sides at once:
+`mapBoth` transforms both sides at once:
 
 ```ts
 pipe(
   These.both(5, "warn"),
-  These.bimap(
+  These.mapBoth(
     (n) => n * 2,
     (e) => e.toUpperCase(),
   ),
@@ -85,24 +83,30 @@ pipe(
 
 ## Chaining
 
-`chain` passes the first value to the next step. The key behaviour is in the `Both` case: if the
-current state is `Both(a, b)` and the next step returns `First(c)`, the second value `b` is
-preserved in a `Both(c, b)`. The second value travels forward:
+`chainFirst` passes the first value to the next step, leaving `Second` unchanged. For `Both`,
+the second value is not preserved — the result of `f` is returned directly:
 
 ```ts
 const double = (n: number): These<number, string> => These.first(n * 2);
 
-pipe(These.first(5), These.chain(double));            // First(10)
-pipe(These.both(5, "warn"), These.chain(double));     // Both(10, "warn") — second preserved
-pipe(These.second("warn"), These.chain(double));      // Second("warn")
+pipe(These.first(5), These.chainFirst(double));         // First(10)
+pipe(These.both(5, "warn"), These.chainFirst(double));  // First(10) — second not carried
+pipe(These.second("warn"), These.chainFirst(double));   // Second("warn")
 ```
 
-If the next step itself returns `Both` or `Second`, that result is returned as-is and the
-original second value from `Both` is dropped.
+`chainSecond` is the symmetric operation on the second side:
 
-## Extracting the value
+```ts
+const shout = (s: string): These<number, string> => These.second(s.toUpperCase());
 
-**`match`** — handle all three cases. Required to cover all variants:
+pipe(These.second("warn"), These.chainSecond(shout));   // Second("WARN")
+pipe(These.both(5, "warn"), These.chainSecond(shout));  // Second("WARN")
+pipe(These.first(5), These.chainSecond(shout));         // First(5)
+```
+
+## Extracting values
+
+**`match`** — handle all three cases:
 
 ```ts
 pipe(
@@ -110,7 +114,7 @@ pipe(
   These.match({
     first: (value) => `First: ${value}`,
     second: (note) => `Second: ${note}`,
-    both: (value, note) => `Both — ${note}: ${value}`,
+    both: (value, note) => `Both — ${value} / ${note}`,
   }),
 );
 ```
@@ -128,12 +132,20 @@ pipe(
 );
 ```
 
-**`getOrElse`** — returns the first value from `First` or `Both`, or a fallback for `Second`:
+**`getFirstOrElse`** — returns the first value from `First` or `Both`, or a fallback for `Second`:
 
 ```ts
-pipe(These.first(5), These.getOrElse(0));            // 5
-pipe(These.both(5, "warn"), These.getOrElse(0));     // 5
-pipe(These.second("warn"), These.getOrElse(0));      // 0
+pipe(These.first(5), These.getFirstOrElse(0));            // 5
+pipe(These.both(5, "warn"), These.getFirstOrElse(0));     // 5
+pipe(These.second("warn"), These.getFirstOrElse(0));      // 0
+```
+
+**`getSecondOrElse`** — symmetric: returns the second value or a fallback for `First`:
+
+```ts
+pipe(These.second("warn"), These.getSecondOrElse("none")); // "warn"
+pipe(These.both(5, "warn"), These.getSecondOrElse("none")); // "warn"
+pipe(These.first(5), These.getSecondOrElse("none"));       // "none"
 ```
 
 ## Type guards
@@ -145,29 +157,24 @@ These.isFirst(t);   // true if First only
 These.isSecond(t);  // true if Second only
 These.isBoth(t);    // true if Both
 
-These.hasFirst(t);  // true if First or Both — first value is present
-These.hasSecond(t); // true if Second or Both — second value is present
+These.hasFirst(t);  // true if First or Both
+These.hasSecond(t); // true if Second or Both
 ```
 
-`hasFirst` and `hasSecond` are useful when you care about the presence of each side
-independently, without needing to distinguish the exact variant.
-
-## Converting to Option
-
-**`toOption`** — keeps only the first value side:
-
-```ts
-These.toOption(These.first(42));           // Some(42)
-These.toOption(These.both(42, "warn"));    // Some(42)
-These.toOption(These.second("warn"));      // None
-```
+## Utilities
 
 **`swap`** — flips first and second roles:
 
 ```ts
-These.swap(These.second("warn")); // First("warn")
-These.swap(These.first(5));       // Second(5)
-These.swap(These.both(5, "warn")); // Both("warn", 5)
+These.swap(These.first(5));            // Second(5)
+These.swap(These.second("warn"));      // First("warn")
+These.swap(These.both(5, "warn"));     // Both("warn", 5)
+```
+
+**`tap`** — run a side effect on the first value without changing the These:
+
+```ts
+pipe(These.first(5), These.tap(console.log)); // logs 5, returns First(5)
 ```
 
 ## When to use These
@@ -175,9 +182,10 @@ These.swap(These.both(5, "warn")); // Both("warn", 5)
 Use `These` when:
 
 - An operation can produce two pieces of information simultaneously
-- You need to propagate a secondary note through a pipeline without losing the primary result
-- You're building lenient parsers or processors that collect diagnostics alongside output
+- You need to carry two independent values — where either or both may be present — through a
+  pipeline
+- Neither side represents a "primary" success or failure path; both are equally valid
 
 `These` is the less commonly reached-for type in the family. When you find yourself wanting to
-carry two independent pieces of data — where either or both may be present — that's the signal
-to reach for it.
+carry two independent pieces of data where any combination is possible, that's the signal to
+reach for it.
