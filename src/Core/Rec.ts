@@ -97,7 +97,7 @@ export namespace Rec {
    * ```
    */
   export const lookup = (key: string) => <A>(data: Readonly<Record<string, A>>): Option<A> =>
-    Object.prototype.hasOwnProperty.call(data, key) ? Option.toSome(data[key]) : Option.toNone();
+    Object.prototype.hasOwnProperty.call(data, key) ? Option.some(data[key]) : Option.none();
 
   /**
    * Returns all keys of a record.

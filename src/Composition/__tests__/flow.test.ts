@@ -67,7 +67,7 @@ Deno.test("flow - integration with Option", () => {
   const safeParseAndDouble = flow(
     (s: string) => {
       const n = parseInt(s, 10);
-      return isNaN(n) ? (Option.toNone() as Option<number>) : Option.of(n);
+      return isNaN(n) ? (Option.none() as Option<number>) : Option.of(n);
     },
     Option.map((n: number) => n * 2),
     Option.getOrElse(0),

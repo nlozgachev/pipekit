@@ -39,7 +39,7 @@ The `map` step only executes if the value is `Some`. If `getUser` returns `None`
 
 ```ts
 Option.of(42);               // Some(42) — wrap a value
-Option.toNone();             // None     — explicit absence
+Option.none();             // None     — explicit absence
 Option.fromNullable(value);  // Some if non-null, None if null or undefined
 Option.fromUndefined(value); // Some if defined, None if undefined
 ```
@@ -60,7 +60,7 @@ const setting = pipe(
 
 ```ts
 pipe(Option.of(5), Option.map((n) => n * 2));    // Some(10)
-pipe(Option.toNone(), Option.map((n) => n * 2)); // None
+pipe(Option.none(), Option.map((n) => n * 2)); // None
 ```
 
 You can chain multiple `map` calls — each one only runs if the previous step produced a `Some`:
@@ -81,12 +81,12 @@ When a transformation itself might produce an absent value, use `chain` instead 
 ```ts
 const parseNumber = (s: string): Option<number> => {
   const n = parseInt(s, 10);
-  return isNaN(n) ? Option.toNone() : Option.of(n);
+  return isNaN(n) ? Option.none() : Option.of(n);
 };
 
 pipe(Option.of("42"),  Option.chain(parseNumber)); // Some(42)
 pipe(Option.of("abc"), Option.chain(parseNumber)); // None
-pipe(Option.toNone(),  Option.chain(parseNumber)); // None
+pipe(Option.none(),  Option.chain(parseNumber)); // None
 ```
 
 Think of it as: `map` is for transformations that always succeed; `chain` is for transformations that might not.
@@ -109,7 +109,7 @@ At the edge of your pipeline, you need to get a plain value back. There are a fe
 **`getOrElse`** — provide a fallback value:
 ```ts
 pipe(Option.of(5),      Option.getOrElse(0)); // 5
-pipe(Option.toNone(),   Option.getOrElse(0)); // 0
+pipe(Option.none(),   Option.getOrElse(0)); // 0
 ```
 
 **`match`** — handle each case explicitly, producing a value from either branch:
@@ -157,8 +157,8 @@ pipe(
 ); // Result<string, User>
 
 // Result → Option: discard the error, keep only the success
-Option.fromResult(Result.toErr("oops")); // None
-Option.fromResult(Result.toOk(42));      // Some(42)
+Option.fromResult(Result.err("oops")); // None
+Option.fromResult(Result.ok(42));      // Some(42)
 ```
 
 ## When to use Option vs null

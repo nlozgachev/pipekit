@@ -117,39 +117,39 @@ Deno.test("filterWithKey - returns empty for empty input", () => {
 
 Deno.test("lookup - returns Some for existing key", () => {
   const result = pipe({ a: 1, b: 2, c: 3 }, Rec.lookup("b"));
-  assertEquals(result, Option.toSome(2));
+  assertEquals(result, Option.some(2));
 });
 
 Deno.test("lookup - returns None for missing key", () => {
   const result = pipe({ a: 1, b: 2 }, Rec.lookup("z"));
-  assertEquals(result, Option.toNone());
+  assertEquals(result, Option.none());
 });
 
 Deno.test("lookup - returns None for empty record", () => {
   const result = pipe({} as Record<string, number>, Rec.lookup("a"));
-  assertEquals(result, Option.toNone());
+  assertEquals(result, Option.none());
 });
 
 Deno.test("lookup - returns Some even if value is falsy (0)", () => {
   const result = pipe({ a: 0 }, Rec.lookup("a"));
-  assertEquals(result, Option.toSome(0));
+  assertEquals(result, Option.some(0));
 });
 
 Deno.test("lookup - returns Some even if value is falsy (empty string)", () => {
   const result = pipe({ a: "" }, Rec.lookup("a"));
-  assertEquals(result, Option.toSome(""));
+  assertEquals(result, Option.some(""));
 });
 
 Deno.test("lookup - returns Some even if value is falsy (false)", () => {
   const result = pipe({ a: false }, Rec.lookup("a"));
-  assertEquals(result, Option.toSome(false));
+  assertEquals(result, Option.some(false));
 });
 
 Deno.test("lookup - does not find inherited properties", () => {
   const obj = Object.create({ inherited: 42 });
   obj.own = 1;
   const result = pipe(obj, Rec.lookup("inherited"));
-  assertEquals(result, Option.toNone());
+  assertEquals(result, Option.none());
 });
 
 // =============================================================================

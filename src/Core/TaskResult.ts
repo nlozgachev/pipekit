@@ -20,12 +20,12 @@ export namespace TaskResult {
   /**
    * Wraps a value in a successful TaskResult.
    */
-  export const of = <E, A>(value: A): TaskResult<E, A> => Task.of(Result.toOk(value));
+  export const of = <E, A>(value: A): TaskResult<E, A> => Task.of(Result.ok(value));
 
   /**
    * Creates a failed TaskResult with the given error.
    */
-  export const fail = <E, A>(error: E): TaskResult<E, A> => Task.of(Result.toErr(error));
+  export const err = <E, A>(error: E): TaskResult<E, A> => Task.of(Result.err(error));
 
   /**
    * Creates a TaskResult from a function that may throw.
@@ -43,8 +43,8 @@ export namespace TaskResult {
   export const tryCatch =
     <E, A>(f: () => Promise<A>, onError: (e: unknown) => E): TaskResult<E, A> => () =>
       f()
-        .then(Result.toOk)
-        .catch((e) => Result.toErr(onError(e)));
+        .then(Result.ok)
+        .catch((e) => Result.err(onError(e)));
 
   /**
    * Transforms the success value inside a TaskResult.
@@ -65,7 +65,7 @@ export namespace TaskResult {
   export const chain =
     <E, A, B>(f: (a: A) => TaskResult<E, B>) => (data: TaskResult<E, A>): TaskResult<E, B> =>
       Task.chain((result: Result<E, A>) =>
-        Result.isOk(result) ? f(result.value) : Task.of(Result.toErr(result.error))
+        Result.isOk(result) ? f(result.value) : Task.of(Result.err(result.error))
       )(data);
 
   /**
@@ -171,7 +171,7 @@ export namespace TaskResult {
       return Promise.race([
         data().then((result) => { clearTimeout(timerId); return result; }),
         new Promise<Result<E, A>>((resolve) => {
-          timerId = setTimeout(() => resolve(Result.toErr(onTimeout())), ms);
+          timerId = setTimeout(() => resolve(Result.err(onTimeout())), ms);
         }),
       ]);
     };

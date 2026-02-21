@@ -31,7 +31,7 @@ export namespace Arr {
    * ```
    */
   export const head = <A>(data: readonly A[]): Option<A> =>
-    data.length > 0 ? Option.toSome(data[0]) : Option.toNone();
+    data.length > 0 ? Option.some(data[0]) : Option.none();
 
   /**
    * Returns the last element of an array, or None if the array is empty.
@@ -43,7 +43,7 @@ export namespace Arr {
    * ```
    */
   export const last = <A>(data: readonly A[]): Option<A> =>
-    data.length > 0 ? Option.toSome(data[data.length - 1]) : Option.toNone();
+    data.length > 0 ? Option.some(data[data.length - 1]) : Option.none();
 
   /**
    * Returns all elements except the first, or None if the array is empty.
@@ -55,7 +55,7 @@ export namespace Arr {
    * ```
    */
   export const tail = <A>(data: readonly A[]): Option<readonly A[]> =>
-    data.length > 0 ? Option.toSome(data.slice(1)) : Option.toNone();
+    data.length > 0 ? Option.some(data.slice(1)) : Option.none();
 
   /**
    * Returns all elements except the last, or None if the array is empty.
@@ -67,7 +67,7 @@ export namespace Arr {
    * ```
    */
   export const init = <A>(data: readonly A[]): Option<readonly A[]> =>
-    data.length > 0 ? Option.toSome(data.slice(0, -1)) : Option.toNone();
+    data.length > 0 ? Option.some(data.slice(0, -1)) : Option.none();
 
   // --- Search ---
 
@@ -81,7 +81,7 @@ export namespace Arr {
    */
   export const findFirst = <A>(predicate: (a: A) => boolean) => (data: readonly A[]): Option<A> => {
     const idx = data.findIndex(predicate);
-    return idx >= 0 ? Option.toSome(data[idx]) : Option.toNone();
+    return idx >= 0 ? Option.some(data[idx]) : Option.none();
   };
 
   /**
@@ -94,9 +94,9 @@ export namespace Arr {
    */
   export const findLast = <A>(predicate: (a: A) => boolean) => (data: readonly A[]): Option<A> => {
     for (let i = data.length - 1; i >= 0; i--) {
-      if (predicate(data[i])) return Option.toSome(data[i]);
+      if (predicate(data[i])) return Option.some(data[i]);
     }
-    return Option.toNone();
+    return Option.none();
   };
 
   /**
@@ -110,7 +110,7 @@ export namespace Arr {
   export const findIndex =
     <A>(predicate: (a: A) => boolean) => (data: readonly A[]): Option<number> => {
       const idx = data.findIndex(predicate);
-      return idx >= 0 ? Option.toSome(idx) : Option.toNone();
+      return idx >= 0 ? Option.some(idx) : Option.none();
     };
 
   // --- Transform ---
@@ -342,7 +342,7 @@ export namespace Arr {
    * ```ts
    * const parseNum = (s: string): Option<number> => {
    *   const n = Number(s);
-   *   return isNaN(n) ? Option.toNone() : Option.of(n);
+   *   return isNaN(n) ? Option.none() : Option.of(n);
    * };
    *
    * pipe(["1", "2", "3"], Arr.traverse(parseNum)); // Some([1, 2, 3])
@@ -354,10 +354,10 @@ export namespace Arr {
       const result: B[] = [];
       for (const a of data) {
         const mapped = f(a);
-        if (Option.isNone(mapped)) return Option.toNone();
+        if (Option.isNone(mapped)) return Option.none();
         result.push(mapped.value);
       }
-      return Option.toSome(result);
+      return Option.some(result);
     };
 
   /**
@@ -368,7 +368,7 @@ export namespace Arr {
    * ```ts
    * pipe(
    *   [1, 2, 3],
-   *   Arr.traverseResult(n => n > 0 ? Result.toOk(n) : Result.toErr("negative"))
+   *   Arr.traverseResult(n => n > 0 ? Result.ok(n) : Result.err("negative"))
    * ); // Ok([1, 2, 3])
    * ```
    */
@@ -380,7 +380,7 @@ export namespace Arr {
         if (Result.isErr(mapped)) return mapped;
         result.push(mapped.value);
       }
-      return Result.toOk(result);
+      return Result.ok(result);
     };
 
   /**
@@ -405,7 +405,7 @@ export namespace Arr {
    * @example
    * ```ts
    * Arr.sequence([Option.of(1), Option.of(2)]); // Some([1, 2])
-   * Arr.sequence([Option.of(1), Option.toNone()]); // None
+   * Arr.sequence([Option.of(1), Option.none()]); // None
    * ```
    */
   export const sequence = <A>(

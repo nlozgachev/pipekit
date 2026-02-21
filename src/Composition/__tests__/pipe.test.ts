@@ -69,7 +69,7 @@ Deno.test("pipe - integration with Option.map", () => {
 
 Deno.test("pipe - integration with Option.map on None", () => {
   const result = pipe(
-    Option.toNone() as Option<number>,
+    Option.none() as Option<number>,
     Option.map((n: number) => n * 2),
     Option.getOrElse(0),
   );
@@ -87,7 +87,7 @@ Deno.test("pipe - integration with Result.map on Ok", () => {
 
 Deno.test("pipe - integration with Result.map on Err", () => {
   const result = pipe(
-    Result.toErr("oops") as Result<string, number>,
+    Result.err("oops") as Result<string, number>,
     Result.map((n: number) => n * 3),
     Result.getOrElse(0),
   );

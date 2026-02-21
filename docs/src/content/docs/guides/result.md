@@ -44,9 +44,9 @@ The `map` step only runs if `parseInput` returned `Ok`. If it returned `Err`, th
 ## Creating Results
 
 ```ts
-Result.toOk(42);           // Ok(42)  — a successful result
-Result.toErr("not found"); // Err("not found") — a failure
-Result.of(42);             // Ok(42)  — alias for toOk
+Result.ok(42);           // Ok(42)  — a successful result
+Result.err("not found"); // Err("not found") — a failure
+Result.of(42);             // Ok(42)  — alias for ok
 ```
 
 The error type in `Result<E, A>` can be anything — a string, a discriminated union, an Error object. You choose what fits your domain.
@@ -73,8 +73,8 @@ The second argument maps the caught exception to your error type, so the result 
 `map` transforms the success value, leaving `Err` untouched:
 
 ```ts
-pipe(Result.toOk(5),       Result.map((n) => n * 2)); // Ok(10)
-pipe(Result.toErr("oops"), Result.map((n) => n * 2)); // Err("oops")
+pipe(Result.ok(5),       Result.map((n) => n * 2)); // Ok(10)
+pipe(Result.err("oops"), Result.map((n) => n * 2)); // Err("oops")
 ```
 
 Chaining multiple `map` calls only continues while the result remains `Ok`. The first `Err` short-circuits the rest:
@@ -94,7 +94,7 @@ pipe(
 
 ```ts
 pipe(
-  Result.toErr("connection refused"),
+  Result.err("connection refused"),
   Result.mapError((e) => ({ code: 503, message: e })),
 ); // Err({ code: 503, message: "connection refused" })
 ```
@@ -107,11 +107,11 @@ When a transformation might itself fail, use `chain` instead of `map`. It preven
 
 ```ts
 const validatePositive = (n: number): Result<string, number> =>
-  n > 0 ? Result.toOk(n) : Result.toErr("Must be positive");
+  n > 0 ? Result.ok(n) : Result.err("Must be positive");
 
-pipe(Result.toOk(5),  Result.chain(validatePositive)); // Ok(5)
-pipe(Result.toOk(-1), Result.chain(validatePositive)); // Err("Must be positive")
-pipe(Result.toErr("parse failed"), Result.chain(validatePositive)); // Err("parse failed")
+pipe(Result.ok(5),  Result.chain(validatePositive)); // Ok(5)
+pipe(Result.ok(-1), Result.chain(validatePositive)); // Err("Must be positive")
+pipe(Result.err("parse failed"), Result.chain(validatePositive)); // Err("parse failed")
 ```
 
 A typical pipeline chains multiple steps that can each fail independently:
@@ -132,8 +132,8 @@ If any step returns `Err`, subsequent steps are skipped and the error propagates
 
 **`getOrElse`** — provide a fallback for the error case:
 ```ts
-pipe(Result.toOk(5),       Result.getOrElse(0)); // 5
-pipe(Result.toErr("oops"), Result.getOrElse(0)); // 0
+pipe(Result.ok(5),       Result.getOrElse(0)); // 5
+pipe(Result.err("oops"), Result.getOrElse(0)); // 0
 ```
 
 **`match`** — handle each case explicitly:
@@ -184,8 +184,8 @@ pipe(
 When you only care about whether an operation succeeded — not why it failed — convert to `Option`:
 
 ```ts
-Result.toOption(Result.toOk(42));      // Some(42)
-Result.toOption(Result.toErr("oops")); // None
+Result.toOption(Result.ok(42));      // Some(42)
+Result.toOption(Result.err("oops")); // None
 ```
 
 The error is discarded. Use this at boundaries where you want to fall back to `Option`-based logic.

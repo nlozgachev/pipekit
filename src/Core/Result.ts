@@ -7,7 +7,7 @@ import { WithError, WithKind, WithValue } from "./InternalTypes.ts";
  * @example
  * ```ts
  * const divide = (a: number, b: number): Result<string, number> =>
- *   b === 0 ? Result.toErr("Division by zero") : Result.toOk(a / b);
+ *   b === 0 ? Result.err("Division by zero") : Result.ok(a / b);
  *
  * pipe(
  *   divide(10, 2),
@@ -30,17 +30,17 @@ export namespace Result {
    * Result.of(42); // Ok(42)
    * ```
    */
-  export const of = <E, A>(value: A): Result<E, A> => toOk(value);
+  export const of = <E, A>(value: A): Result<E, A> => ok(value);
 
   /**
    * Creates a failed Result with the given error.
    */
-  export const toErr = <E>(error: E): Err<E> => ({ kind: "Error", error });
+  export const err = <E>(error: E): Err<E> => ({ kind: "Error", error });
 
   /**
    * Creates a successful Result with the given value.
    */
-  export const toOk = <A>(value: A): Ok<A> => ({ kind: "Ok", value });
+  export const ok = <A>(value: A): Ok<A> => ({ kind: "Ok", value });
 
   /**
    * Type guard that checks if an Result is Ok.
@@ -70,9 +70,9 @@ export namespace Result {
     onError: (e: unknown) => E,
   ): Result<E, A> => {
     try {
-      return toOk(f());
+      return ok(f());
     } catch (e) {
-      return toErr(onError(e));
+      return err(onError(e));
     }
   };
 
@@ -82,22 +82,22 @@ export namespace Result {
    * @example
    * ```ts
    * pipe(Result.of(5), Result.map(n => n * 2)); // Ok(10)
-   * pipe(Result.toErr("error"), Result.map(n => n * 2)); // Err("error")
+   * pipe(Result.err("error"), Result.map(n => n * 2)); // Err("error")
    * ```
    */
   export const map = <E, A, B>(f: (a: A) => B) => (data: Result<E, A>): Result<E, B> =>
-    isOk(data) ? toOk(f(data.value)) : data;
+    isOk(data) ? ok(f(data.value)) : data;
 
   /**
    * Transforms the error value inside an Result.
    *
    * @example
    * ```ts
-   * pipe(Result.toErr("oops"), Result.mapError(e => e.toUpperCase())); // Err("OOPS")
+   * pipe(Result.err("oops"), Result.mapError(e => e.toUpperCase())); // Err("OOPS")
    * ```
    */
   export const mapError = <E, F, A>(f: (e: E) => F) => (data: Result<E, A>): Result<F, A> =>
-    isErr(data) ? toErr(f(data.error)) : data;
+    isErr(data) ? err(f(data.error)) : data;
 
   /**
    * Chains Result computations. If the first is Ok, passes the value to f.
@@ -106,7 +106,7 @@ export namespace Result {
    * @example
    * ```ts
    * const validatePositive = (n: number): Result<string, number> =>
-   *   n > 0 ? Result.of(n) : Result.toErr("Must be positive");
+   *   n > 0 ? Result.of(n) : Result.err("Must be positive");
    *
    * pipe(Result.of(5), Result.chain(validatePositive)); // Ok(5)
    * pipe(Result.of(-1), Result.chain(validatePositive)); // Err("Must be positive")
@@ -156,7 +156,7 @@ export namespace Result {
    * @example
    * ```ts
    * pipe(Result.of(5), Result.getOrElse(0)); // 5
-   * pipe(Result.toErr("error"), Result.getOrElse(0)); // 0
+   * pipe(Result.err("error"), Result.getOrElse(0)); // 0
    * ```
    */
   export const getOrElse = <E, A>(defaultValue: A) => (data: Result<E, A>): A =>
@@ -200,8 +200,8 @@ export namespace Result {
    *
    * @example
    * ```ts
-   * Result.toOption(Result.toOk(42)); // Some(42)
-   * Result.toOption(Result.toErr("oops")); // None
+   * Result.toOption(Result.ok(42)); // Some(42)
+   * Result.toOption(Result.err("oops")); // None
    * ```
    */
   export const toOption = <E, A>(
@@ -223,5 +223,5 @@ export namespace Result {
    * ```
    */
   export const ap = <E, A>(arg: Result<E, A>) => <B>(data: Result<E, (a: A) => B>): Result<E, B> =>
-    isOk(data) && isOk(arg) ? toOk(data.value(arg.value)) : isErr(data) ? data : (arg as Err<E>);
+    isOk(data) && isOk(arg) ? ok(data.value(arg.value)) : isErr(data) ? data : (arg as Err<E>);
 }

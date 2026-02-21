@@ -218,9 +218,9 @@ export namespace Task {
     () => {
       let timerId: ReturnType<typeof setTimeout>;
       return Promise.race([
-        task().then((a): Result<E, A> => { clearTimeout(timerId); return Result.toOk(a); }),
+        task().then((a): Result<E, A> => { clearTimeout(timerId); return Result.ok(a); }),
         new Promise<Result<E, A>>((resolve) => {
-          timerId = setTimeout(() => resolve(Result.toErr(onTimeout())), ms);
+          timerId = setTimeout(() => resolve(Result.err(onTimeout())), ms);
         }),
       ]);
     };

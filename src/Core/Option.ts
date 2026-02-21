@@ -8,7 +8,7 @@ import { Result } from "./Result.ts";
  * @example
  * ```ts
  * const findUser = (id: string): Option<User> =>
- *   users.has(id) ? Option.of(users.get(id)!) : Option.toNone();
+ *   users.has(id) ? Option.of(users.get(id)!) : Option.none();
  *
  * pipe(
  *   findUser("123"),
@@ -31,12 +31,12 @@ export namespace Option {
    * Option.of(42); // Some(42)
    * ```
    */
-  export const of = <A>(value: A): Option<A> => toSome(value);
+  export const of = <A>(value: A): Option<A> => some(value);
 
   /**
    * Creates a Some containing the given value.
    */
-  export const toSome = <A>(value: A): Some<A> => ({ kind: "Some", value });
+  export const some = <A>(value: A): Some<A> => ({ kind: "Some", value });
 
   /**
    * Type guard that checks if a Option is Some.
@@ -46,7 +46,7 @@ export namespace Option {
   /**
    * Creates a None (empty Option).
    */
-  export const toNone = (): None => ({ kind: "None" });
+  export const none = (): None => ({ kind: "None" });
 
   /**
    * Type guard that checks if a Option is None.
@@ -64,7 +64,7 @@ export namespace Option {
    * ```
    */
   export const fromNullable = <A>(value: A | null | undefined): Option<A> =>
-    value === null || value === undefined ? toNone() : toSome(value);
+    value === null || value === undefined ? none() : some(value);
 
   /**
    * Extracts the value from a Option, returning null if None.
@@ -82,7 +82,7 @@ export namespace Option {
    * Returns None if undefined, Some otherwise.
    */
   export const fromUndefined = <A>(value: A | undefined): Option<A> =>
-    value === undefined ? toNone() : toSome(value);
+    value === undefined ? none() : some(value);
 
   /**
    * Converts an Option to a Result.
@@ -96,13 +96,13 @@ export namespace Option {
    * ); // Ok(42)
    *
    * pipe(
-   *   Option.toNone(),
+   *   Option.none(),
    *   Option.toResult(() => "Value was missing")
    * ); // Err("Value was missing")
    * ```
    */
   export const toResult = <E>(onNone: () => E) => <A>(data: Option<A>): Result<E, A> =>
-    isSome(data) ? Result.toOk(data.value) : Result.toErr(onNone());
+    isSome(data) ? Result.ok(data.value) : Result.err(onNone());
 
   /**
    * Creates an Option from a Result.
@@ -110,12 +110,12 @@ export namespace Option {
    *
    * @example
    * ```ts
-   * Option.fromResult(Result.toOk(42)); // Some(42)
-   * Option.fromResult(Result.toErr("oops")); // None
+   * Option.fromResult(Result.ok(42)); // Some(42)
+   * Option.fromResult(Result.err("oops")); // None
    * ```
    */
   export const fromResult = <E, A>(data: Result<E, A>): Option<A> =>
-    Result.isOk(data) ? toSome(data.value) : toNone();
+    Result.isOk(data) ? some(data.value) : none();
 
   /**
    * Transforms the value inside a Option if it exists.
@@ -123,11 +123,11 @@ export namespace Option {
    * @example
    * ```ts
    * pipe(Option.of(5), Option.map(n => n * 2)); // Some(10)
-   * pipe(Option.toNone(), Option.map(n => n * 2)); // None
+   * pipe(Option.none(), Option.map(n => n * 2)); // None
    * ```
    */
   export const map = <A, B>(f: (a: A) => B) => (data: Option<A>): Option<B> =>
-    isSome(data) ? toSome(f(data.value)) : data;
+    isSome(data) ? some(f(data.value)) : data;
 
   /**
    * Chains Option computations. If the first is Some, passes the value to f.
@@ -137,7 +137,7 @@ export namespace Option {
    * ```ts
    * const parseNumber = (s: string): Option<number> => {
    *   const n = parseInt(s, 10);
-   *   return isNaN(n) ? Option.toNone() : Option.of(n);
+   *   return isNaN(n) ? Option.none() : Option.of(n);
    * };
    *
    * pipe(Option.of("42"), Option.chain(parseNumber)); // Some(42)
@@ -188,7 +188,7 @@ export namespace Option {
    * @example
    * ```ts
    * pipe(Option.of(5), Option.getOrElse(0)); // 5
-   * pipe(Option.toNone(), Option.getOrElse(0)); // 0
+   * pipe(Option.none(), Option.getOrElse(0)); // 0
    * ```
    */
   export const getOrElse = <A>(defaultValue: A) => (data: Option<A>): A =>
@@ -223,7 +223,7 @@ export namespace Option {
    * ```
    */
   export const filter = <A>(predicate: (a: A) => boolean) => (data: Option<A>): Option<A> =>
-    isSome(data) && predicate(data.value) ? data : toNone();
+    isSome(data) && predicate(data.value) ? data : none();
 
   /**
    * Recovers from a None by providing a fallback Option.
@@ -245,5 +245,5 @@ export namespace Option {
    * ```
    */
   export const ap = <A>(arg: Option<A>) => <B>(data: Option<(a: A) => B>): Option<B> =>
-    isSome(data) && isSome(arg) ? toSome(data.value(arg.value)) : toNone();
+    isSome(data) && isSome(arg) ? some(data.value(arg.value)) : none();
 }

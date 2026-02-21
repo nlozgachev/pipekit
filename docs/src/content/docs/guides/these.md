@@ -27,9 +27,9 @@ In these cases, returning `Err` discards the result. Returning `Ok` discards the
 ```ts
 import { These } from "@nlozgachev/pipekit/Core";
 
-These.toOk(42);              // Ok — success, no warning
-These.toErr("bad input");    // Err — failure, no value
-These.toBoth("trimmed", 42); // Both — value with a warning attached
+These.ok(42);              // Ok — success, no warning
+These.err("bad input");    // Err — failure, no value
+These.both("trimmed", 42); // Both — value with a warning attached
 ```
 
 A typical use: a parser that's lenient but reports what it fixed:
@@ -40,9 +40,9 @@ import { pipe } from "@nlozgachev/pipekit/Composition";
 const parseNumber = (s: string): These<string, number> => {
   const trimmed = s.trim();
   const n = parseFloat(trimmed);
-  if (isNaN(n)) return These.toErr("Not a number");
-  if (s !== trimmed) return These.toBoth("Leading/trailing whitespace trimmed", n);
-  return These.toOk(n);
+  if (isNaN(n)) return These.err("Not a number");
+  if (s !== trimmed) return These.both("Leading/trailing whitespace trimmed", n);
+  return These.ok(n);
 };
 
 parseNumber("  42  "); // Both("Leading/trailing whitespace trimmed", 42)
@@ -55,23 +55,23 @@ parseNumber("abc");    // Err("Not a number")
 `map` transforms the value in `Ok` and `Both`, leaving `Err` untouched. In `Both`, the warning is preserved:
 
 ```ts
-pipe(These.toOk(5),          These.map((n) => n * 2)); // Ok(10)
-pipe(These.toBoth("warn", 5), These.map((n) => n * 2)); // Both("warn", 10)
-pipe(These.toErr("err"),      These.map((n) => n * 2)); // Err("err")
+pipe(These.ok(5),          These.map((n) => n * 2)); // Ok(10)
+pipe(These.both("warn", 5), These.map((n) => n * 2)); // Both("warn", 10)
+pipe(These.err("err"),      These.map((n) => n * 2)); // Err("err")
 ```
 
 `mapErr` transforms the error/warning in `Err` and `Both`, leaving `Ok` untouched:
 
 ```ts
-pipe(These.toErr("warn"),      These.mapErr((e) => e.toUpperCase())); // Err("WARN")
-pipe(These.toBoth("warn", 5),  These.mapErr((e) => e.toUpperCase())); // Both("WARN", 5)
+pipe(These.err("warn"),      These.mapErr((e) => e.toUpperCase())); // Err("WARN")
+pipe(These.both("warn", 5),  These.mapErr((e) => e.toUpperCase())); // Both("WARN", 5)
 ```
 
 `bimap` transforms both sides at once:
 
 ```ts
 pipe(
-  These.toBoth("warn", 5),
+  These.both("warn", 5),
   These.bimap(
     (e) => e.toUpperCase(),
     (n) => n * 2,
@@ -84,11 +84,11 @@ pipe(
 `chain` passes the value to the next step. The key behaviour is in the `Both` case: if the current state is `Both(e, a)` and the next step returns `Ok(b)`, the warning `e` is preserved in a `Both(e, b)`. The warning travels forward:
 
 ```ts
-const double = (n: number): These<string, number> => These.toOk(n * 2);
+const double = (n: number): These<string, number> => These.ok(n * 2);
 
-pipe(These.toOk(5),           These.chain(double)); // Ok(10)
-pipe(These.toBoth("warn", 5), These.chain(double)); // Both("warn", 10) — warning preserved
-pipe(These.toErr("err"),      These.chain(double)); // Err("err")
+pipe(These.ok(5),           These.chain(double)); // Ok(10)
+pipe(These.both("warn", 5), These.chain(double)); // Both("warn", 10) — warning preserved
+pipe(These.err("err"),      These.chain(double)); // Err("err")
 ```
 
 If the next step itself returns `Both` or `Err`, that result takes precedence and the original warning from `Both` is dropped.
@@ -121,9 +121,9 @@ pipe(
 
 **`getOrElse`** — returns the value from `Ok` or `Both`, or a fallback for `Err`:
 ```ts
-pipe(These.toOk(5),           These.getOrElse(0)); // 5
-pipe(These.toBoth("warn", 5), These.getOrElse(0)); // 5
-pipe(These.toErr("err"),      These.getOrElse(0)); // 0
+pipe(These.ok(5),           These.getOrElse(0)); // 5
+pipe(These.both("warn", 5), These.getOrElse(0)); // 5
+pipe(These.err("err"),      These.getOrElse(0)); // 0
 ```
 
 ## Type guards
@@ -145,23 +145,23 @@ These.hasError(t); // true if Err or Both — error is present
 
 **`toResult`** — converts to `Result`, discarding any warning from `Both`:
 ```ts
-These.toResult(These.toOk(42));           // Ok(42)
-These.toResult(These.toBoth("warn", 42)); // Ok(42) — warning dropped
-These.toResult(These.toErr("err"));       // Err("err")
+These.toResult(These.ok(42));           // Ok(42)
+These.toResult(These.both("warn", 42)); // Ok(42) — warning dropped
+These.toResult(These.err("err"));       // Err("err")
 ```
 
 **`toOption`** — keeps only the value side:
 ```ts
-These.toOption(These.toOk(42));           // Some(42)
-These.toOption(These.toBoth("warn", 42)); // Some(42)
-These.toOption(These.toErr("err"));       // None
+These.toOption(These.ok(42));           // Some(42)
+These.toOption(These.both("warn", 42)); // Some(42)
+These.toOption(These.err("err"));       // None
 ```
 
 **`swap`** — flips error and value roles:
 ```ts
-These.swap(These.toErr("err"));        // Ok("err")
-These.swap(These.toOk(5));             // Err(5)
-These.swap(These.toBoth("warn", 5));   // Both(5, "warn")
+These.swap(These.err("err"));        // Ok("err")
+These.swap(These.ok(5));             // Err(5)
+These.swap(These.both("warn", 5));   // Both(5, "warn")
 ```
 
 ## When to use These vs Result

@@ -120,7 +120,7 @@ type Email = Brand<"Email", string>;
 const toEmail = Brand.wrap<"Email", string>();
 
 const parseEmail = (s: string): Option<Email> =>
-  s.includes("@") ? Option.of(toEmail(s)) : Option.toNone();
+  s.includes("@") ? Option.of(toEmail(s)) : Option.none();
 ```
 
 Now the only way to get an `Email` value is through `parseEmail`, which enforces the invariant. Any function accepting `Email` knows it has already been validated — it doesn't need to re-check.

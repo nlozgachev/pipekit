@@ -29,7 +29,7 @@ export namespace TaskOption {
   /**
    * Creates a TaskOption that resolves to None.
    */
-  export const none = <A = never>(): TaskOption<A> => Task.of(Option.toNone());
+  export const none = <A = never>(): TaskOption<A> => Task.of(Option.none());
 
   /**
    * Lifts an Option into a TaskOption.
@@ -53,7 +53,7 @@ export namespace TaskOption {
    * ```
    */
   export const tryCatch = <A>(f: () => Promise<A>): TaskOption<A> => () =>
-    f().then(Option.of).catch(() => Option.toNone());
+    f().then(Option.of).catch(() => Option.none());
 
   /**
    * Transforms the value inside a TaskOption.
@@ -75,7 +75,7 @@ export namespace TaskOption {
    */
   export const chain = <A, B>(f: (a: A) => TaskOption<B>) => (data: TaskOption<A>): TaskOption<B> =>
     Task.chain((option: Option<A>) =>
-      Option.isSome(option) ? f(option.value) : Task.of(Option.toNone())
+      Option.isSome(option) ? f(option.value) : Task.of(Option.none())
     )(data);
 
   /**

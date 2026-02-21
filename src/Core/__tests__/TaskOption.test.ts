@@ -28,7 +28,7 @@ Deno.test("TaskOption.fromOption lifts Some into a Task", async () => {
 });
 
 Deno.test("TaskOption.fromOption lifts None into a Task", async () => {
-  assertEquals(await TaskOption.fromOption(Option.toNone())(), { kind: "None" });
+  assertEquals(await TaskOption.fromOption(Option.none())(), { kind: "None" });
 });
 
 // ---------------------------------------------------------------------------

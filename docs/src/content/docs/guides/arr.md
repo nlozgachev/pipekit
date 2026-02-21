@@ -161,7 +161,7 @@ The `traverse` family maps each element to a typed container and collects the re
 ```ts
 const parseNum = (s: string): Option<number> => {
   const n = Number(s);
-  return isNaN(n) ? Option.toNone() : Option.of(n);
+  return isNaN(n) ? Option.none() : Option.of(n);
 };
 
 pipe(["1", "2", "3"], Arr.traverse(parseNum)); // Some([1, 2, 3])
@@ -172,7 +172,7 @@ pipe(["1", "x", "3"], Arr.traverse(parseNum)); // None
 
 ```ts
 const validatePositive = (n: number): Result<string, number> =>
-  n > 0 ? Result.toOk(n) : Result.toErr("not positive");
+  n > 0 ? Result.ok(n) : Result.err("not positive");
 
 pipe([1, 2, 3],  Arr.traverseResult(validatePositive)); // Ok([1, 2, 3])
 pipe([1, -1, 3], Arr.traverseResult(validatePositive)); // Err("not positive")
@@ -191,5 +191,5 @@ pipe(
 
 ```ts
 Arr.sequence([Option.of(1), Option.of(2)]);   // Some([1, 2])
-Arr.sequence([Option.of(1), Option.toNone()]); // None
+Arr.sequence([Option.of(1), Option.none()]); // None
 ```

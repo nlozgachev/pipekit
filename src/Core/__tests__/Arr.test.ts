@@ -13,66 +13,66 @@ Deno.test(
   "head - returns Some of the first element for a non-empty array",
   () => {
     const result = Arr.head([10, 20, 30]);
-    assertEquals(result, Option.toSome(10));
+    assertEquals(result, Option.some(10));
   },
 );
 
 Deno.test("head - returns None for an empty array", () => {
   const result = Arr.head([]);
-  assertEquals(result, Option.toNone());
+  assertEquals(result, Option.none());
 });
 
 Deno.test("head - returns Some for a single-element array", () => {
   const result = Arr.head(["only"]);
-  assertEquals(result, Option.toSome("only"));
+  assertEquals(result, Option.some("only"));
 });
 
 Deno.test(
   "last - returns Some of the last element for a non-empty array",
   () => {
     const result = Arr.last([10, 20, 30]);
-    assertEquals(result, Option.toSome(30));
+    assertEquals(result, Option.some(30));
   },
 );
 
 Deno.test("last - returns None for an empty array", () => {
   const result = Arr.last([]);
-  assertEquals(result, Option.toNone());
+  assertEquals(result, Option.none());
 });
 
 Deno.test("last - returns Some for a single-element array", () => {
   const result = Arr.last([42]);
-  assertEquals(result, Option.toSome(42));
+  assertEquals(result, Option.some(42));
 });
 
 Deno.test("tail - returns Some of all elements except the first", () => {
   const result = Arr.tail([1, 2, 3]);
-  assertEquals(result, Option.toSome([2, 3]));
+  assertEquals(result, Option.some([2, 3]));
 });
 
 Deno.test("tail - returns Some of empty array for single-element array", () => {
   const result = Arr.tail([1]);
-  assertEquals(result, Option.toSome([]));
+  assertEquals(result, Option.some([]));
 });
 
 Deno.test("tail - returns None for an empty array", () => {
   const result = Arr.tail([]);
-  assertEquals(result, Option.toNone());
+  assertEquals(result, Option.none());
 });
 
 Deno.test("init - returns Some of all elements except the last", () => {
   const result = Arr.init([1, 2, 3]);
-  assertEquals(result, Option.toSome([1, 2]));
+  assertEquals(result, Option.some([1, 2]));
 });
 
 Deno.test("init - returns Some of empty array for single-element array", () => {
   const result = Arr.init([1]);
-  assertEquals(result, Option.toSome([]));
+  assertEquals(result, Option.some([]));
 });
 
 Deno.test("init - returns None for an empty array", () => {
   const result = Arr.init([]);
-  assertEquals(result, Option.toNone());
+  assertEquals(result, Option.none());
 });
 
 // =============================================================================
@@ -84,7 +84,7 @@ Deno.test("findFirst - returns Some of the first matching element", () => {
     [1, 2, 3, 4, 5],
     Arr.findFirst((n) => n > 3),
   );
-  assertEquals(result, Option.toSome(4));
+  assertEquals(result, Option.some(4));
 });
 
 Deno.test("findFirst - returns None when no element matches", () => {
@@ -92,7 +92,7 @@ Deno.test("findFirst - returns None when no element matches", () => {
     [1, 2, 3],
     Arr.findFirst((n) => n > 10),
   );
-  assertEquals(result, Option.toNone());
+  assertEquals(result, Option.none());
 });
 
 Deno.test("findFirst - returns None for an empty array", () => {
@@ -100,7 +100,7 @@ Deno.test("findFirst - returns None for an empty array", () => {
     [] as number[],
     Arr.findFirst((n) => n > 0),
   );
-  assertEquals(result, Option.toNone());
+  assertEquals(result, Option.none());
 });
 
 Deno.test("findFirst - returns Some(undefined) when undefined matches", () => {
@@ -108,7 +108,7 @@ Deno.test("findFirst - returns Some(undefined) when undefined matches", () => {
     [undefined, 1, 2] as (number | undefined)[],
     Arr.findFirst((x) => x === undefined),
   );
-  assertEquals(result, Option.toSome(undefined));
+  assertEquals(result, Option.some(undefined));
 });
 
 Deno.test("findLast - returns Some of the last matching element", () => {
@@ -116,7 +116,7 @@ Deno.test("findLast - returns Some of the last matching element", () => {
     [1, 2, 3, 4, 5],
     Arr.findLast((n) => n > 2),
   );
-  assertEquals(result, Option.toSome(5));
+  assertEquals(result, Option.some(5));
 });
 
 Deno.test("findLast - returns None when no element matches", () => {
@@ -124,7 +124,7 @@ Deno.test("findLast - returns None when no element matches", () => {
     [1, 2, 3],
     Arr.findLast((n) => n > 10),
   );
-  assertEquals(result, Option.toNone());
+  assertEquals(result, Option.none());
 });
 
 Deno.test("findLast - returns None for an empty array", () => {
@@ -132,7 +132,7 @@ Deno.test("findLast - returns None for an empty array", () => {
     [] as number[],
     Arr.findLast((_) => true),
   );
-  assertEquals(result, Option.toNone());
+  assertEquals(result, Option.none());
 });
 
 Deno.test("findLast - returns Some(undefined) when undefined matches", () => {
@@ -140,7 +140,7 @@ Deno.test("findLast - returns Some(undefined) when undefined matches", () => {
     [1, undefined, 2, undefined] as (number | undefined)[],
     Arr.findLast((x) => x === undefined),
   );
-  assertEquals(result, Option.toSome(undefined));
+  assertEquals(result, Option.some(undefined));
 });
 
 Deno.test("findIndex - returns Some of the index of the first match", () => {
@@ -148,7 +148,7 @@ Deno.test("findIndex - returns Some of the index of the first match", () => {
     [10, 20, 30, 40],
     Arr.findIndex((n) => n === 30),
   );
-  assertEquals(result, Option.toSome(2));
+  assertEquals(result, Option.some(2));
 });
 
 Deno.test("findIndex - returns None when no element matches", () => {
@@ -156,7 +156,7 @@ Deno.test("findIndex - returns None when no element matches", () => {
     [10, 20, 30],
     Arr.findIndex((n) => n === 99),
   );
-  assertEquals(result, Option.toNone());
+  assertEquals(result, Option.none());
 });
 
 Deno.test("findIndex - returns None for an empty array", () => {
@@ -164,7 +164,7 @@ Deno.test("findIndex - returns None for an empty array", () => {
     [] as number[],
     Arr.findIndex((_) => true),
   );
-  assertEquals(result, Option.toNone());
+  assertEquals(result, Option.none());
 });
 
 // =============================================================================
@@ -560,61 +560,61 @@ Deno.test("reduce - builds an object from entries", () => {
 Deno.test("traverse - all Some results in Some of array", () => {
   const parseNum = (s: string): Option<number> => {
     const n = Number(s);
-    return isNaN(n) ? Option.toNone() : Option.toSome(n);
+    return isNaN(n) ? Option.none() : Option.some(n);
   };
   const result = pipe(["1", "2", "3"], Arr.traverse(parseNum));
-  assertEquals(result, Option.toSome([1, 2, 3]));
+  assertEquals(result, Option.some([1, 2, 3]));
 });
 
 Deno.test("traverse - any None results in None", () => {
   const parseNum = (s: string): Option<number> => {
     const n = Number(s);
-    return isNaN(n) ? Option.toNone() : Option.toSome(n);
+    return isNaN(n) ? Option.none() : Option.some(n);
   };
   const result = pipe(["1", "x", "3"], Arr.traverse(parseNum));
-  assertEquals(result, Option.toNone());
+  assertEquals(result, Option.none());
 });
 
 Deno.test("traverse - empty array results in Some of empty array", () => {
   const result = pipe(
     [] as string[],
-    Arr.traverse((s) => Option.toSome(s)),
+    Arr.traverse((s) => Option.some(s)),
   );
-  assertEquals(result, Option.toSome([]));
+  assertEquals(result, Option.some([]));
 });
 
 Deno.test("traverse - fails at first None and short-circuits", () => {
   let callCount = 0;
   const f = (n: number): Option<number> => {
     callCount++;
-    return n > 0 ? Option.toSome(n) : Option.toNone();
+    return n > 0 ? Option.some(n) : Option.none();
   };
   const result = pipe([1, 0, 2, 3], Arr.traverse(f));
-  assertEquals(result, Option.toNone());
+  assertEquals(result, Option.none());
   assertStrictEquals(callCount, 2);
 });
 
 Deno.test("sequence - all Some results in Some of array", () => {
   const result = Arr.sequence([
-    Option.toSome(1),
-    Option.toSome(2),
-    Option.toSome(3),
+    Option.some(1),
+    Option.some(2),
+    Option.some(3),
   ]);
-  assertEquals(result, Option.toSome([1, 2, 3]));
+  assertEquals(result, Option.some([1, 2, 3]));
 });
 
 Deno.test("sequence - any None results in None", () => {
   const result = Arr.sequence([
-    Option.toSome(1),
-    Option.toNone(),
-    Option.toSome(3),
+    Option.some(1),
+    Option.none(),
+    Option.some(3),
   ]);
-  assertEquals(result, Option.toNone());
+  assertEquals(result, Option.none());
 });
 
 Deno.test("sequence - empty array results in Some of empty array", () => {
   const result = Arr.sequence([] as Option<number>[]);
-  assertEquals(result, Option.toSome([]));
+  assertEquals(result, Option.some([]));
 });
 
 // =============================================================================
@@ -623,31 +623,31 @@ Deno.test("sequence - empty array results in Some of empty array", () => {
 
 Deno.test("traverseResult - all Ok results in Ok of array", () => {
   const validate = (n: number): Result<string, number> =>
-    n > 0 ? Result.toOk(n) : Result.toErr("not positive");
+    n > 0 ? Result.ok(n) : Result.err("not positive");
   const result = pipe([1, 2, 3], Arr.traverseResult(validate));
-  assertEquals(result, Result.toOk([1, 2, 3]));
+  assertEquals(result, Result.ok([1, 2, 3]));
 });
 
 Deno.test("traverseResult - first Err is returned", () => {
   const validate = (n: number): Result<string, number> =>
-    n > 0 ? Result.toOk(n) : Result.toErr(`${n} is not positive`);
+    n > 0 ? Result.ok(n) : Result.err(`${n} is not positive`);
   const result = pipe([1, -2, -3], Arr.traverseResult(validate));
-  assertEquals(result, Result.toErr("-2 is not positive"));
+  assertEquals(result, Result.err("-2 is not positive"));
 });
 
 Deno.test("traverseResult - empty array results in Ok of empty array", () => {
   const result = pipe(
     [] as number[],
-    Arr.traverseResult((n) => Result.toOk(n)),
+    Arr.traverseResult((n) => Result.ok(n)),
   );
-  assertEquals(result, Result.toOk([]));
+  assertEquals(result, Result.ok([]));
 });
 
 Deno.test("traverseResult - short-circuits at first Err", () => {
   let callCount = 0;
   const f = (n: number): Result<string, number> => {
     callCount++;
-    return n > 0 ? Result.toOk(n) : Result.toErr("bad");
+    return n > 0 ? Result.ok(n) : Result.err("bad");
   };
   pipe([1, 0, 2, 3], Arr.traverseResult(f));
   assertStrictEquals(callCount, 2);
@@ -655,25 +655,25 @@ Deno.test("traverseResult - short-circuits at first Err", () => {
 
 Deno.test("sequenceResult - all Ok results in Ok of array", () => {
   const result = Arr.sequenceResult([
-    Result.toOk(1),
-    Result.toOk(2),
-    Result.toOk(3),
+    Result.ok(1),
+    Result.ok(2),
+    Result.ok(3),
   ]);
-  assertEquals(result, Result.toOk([1, 2, 3]));
+  assertEquals(result, Result.ok([1, 2, 3]));
 });
 
 Deno.test("sequenceResult - first Err is returned", () => {
   const result = Arr.sequenceResult([
-    Result.toOk(1),
-    Result.toErr("oops"),
-    Result.toOk(3),
+    Result.ok(1),
+    Result.err("oops"),
+    Result.ok(3),
   ]);
-  assertEquals(result, Result.toErr("oops"));
+  assertEquals(result, Result.err("oops"));
 });
 
 Deno.test("sequenceResult - empty array results in Ok of empty array", () => {
   const result = Arr.sequenceResult([] as Result<string, number>[]);
-  assertEquals(result, Result.toOk([]));
+  assertEquals(result, Result.ok([]));
 });
 
 // =============================================================================
@@ -947,7 +947,7 @@ Deno.test("pipe composition - filter, map, head", () => {
     Arr.map((n) => n * 10),
     Arr.head,
   );
-  assertEquals(result, Option.toSome(30));
+  assertEquals(result, Option.some(30));
 });
 
 Deno.test("pipe composition - map, filter, reduce", () => {
