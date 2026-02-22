@@ -16,17 +16,22 @@ transformations, cached reads — this is a lie the type cannot retract. A calle
 `.catch(handleError)` and the type system offers no objection, even when the rejection will never
 arrive.
 
-`Deferred` solves this by offering only what an infallible value needs:
+`Deferred` solves this with two structural choices working together:
 
 ```ts
 type Deferred<A> = {
+  readonly [_deferred]: A;
   readonly then: (onfulfilled: (value: A) => void) => void;
 };
 ```
 
-The `.then()` here accepts only a fulfillment callback — no rejection handler — and returns `void`
-instead of a new thenable. Chaining and error handling are structurally impossible. The type says
-exactly what is true: this will resolve, and only that.
+The `[_deferred]` field is a phantom unique symbol — it carries `A` nominally so that only values
+produced by `Deferred.fromPromise` satisfy the type. A plain object `{ then: ... }` does not. This
+prevents accidental structural compatibility.
+
+The `.then()` accepts only a fulfillment callback — no rejection handler — and returns `void` rather
+than a new thenable. There is no second parameter to pass, so chaining and error handling are
+excluded by construction. The type says exactly what is true: this will resolve, and only that.
 
 ## Wrapping a Promise with `fromPromise`
 

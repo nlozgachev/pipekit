@@ -1,9 +1,17 @@
+declare const _deferred: unique symbol;
+
 /**
- * A one-shot async value that supports `await` but nothing else.
+ * A nominally typed, one-shot async value that supports `await` but enforces infallibility.
  *
- * Unlike `Promise`, `Deferred` has no `.catch()` or `.finally()`, and its
- * `.then()` returns `void` — so it cannot be chained. This makes it the
- * natural return type for `Task`, which is guaranteed to never reject.
+ * Two design choices work together to make the guarantee structural rather than documentary:
+ *
+ * - The phantom `[_deferred]` symbol makes the type **nominal**: only values produced by
+ *   `Deferred.fromPromise` satisfy it. A plain object `{ then: ... }` does not.
+ * - The single-parameter `.then()` **excludes rejection handlers** by construction. There is
+ *   no second argument to pass, so chaining and `.catch()` are impossible.
+ *
+ * This makes `Deferred<A>` the natural return type for `Task<A>`, which is guaranteed to
+ * never reject.
  *
  * @example
  * ```ts
@@ -12,6 +20,7 @@
  * ```
  */
 export type Deferred<A> = {
+  readonly [_deferred]: A;
   readonly then: (onfulfilled: (value: A) => void) => void;
 };
 
@@ -26,11 +35,10 @@ export namespace Deferred {
    * const value = await d; // "hello"
    * ```
    */
-  export const fromPromise = <A>(p: Promise<A>): Deferred<A> => ({
-    then: (f) => {
-      p.then(f);
-    },
-  });
+  export const fromPromise = <A>(p: Promise<A>): Deferred<A> =>
+    ({
+      then: ((f) => p.then(f)) as Deferred<A>["then"],
+    }) as Deferred<A>;
 
   /**
    * Converts a `Deferred` back into a `Promise`.
