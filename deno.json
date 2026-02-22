@@ -1,6 +1,6 @@
 {
   "name": "@nlozgachev/pipekit",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "exports": {
     "./Composition": "./src/Composition/index.ts",
     "./Core": "./src/Core/index.ts",
@@ -13,11 +13,11 @@
     "publish:npm": "deno task build:npm && cd npm && npm publish --access public"
   },
   "exclude": [
-    "docs",
-    "README.md"
+    "docs"
   ],
   "fmt": {
-    "lineWidth": 100
+    "lineWidth": 100,
+    "exclude": ["README.md"]
   },
   "lint": {
     "rules": {
