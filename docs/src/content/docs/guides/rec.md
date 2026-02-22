@@ -1,6 +1,6 @@
 ---
 title: Rec — record utilities
-description: Object operations that compose with pipe, with safe key lookup returning Option.
+description: Work with records in a pipeline — data-last utilities with Option-returning key lookup.
 ---
 
 Plain JavaScript objects used as maps — `Record<string, A>` — are one of the most common data

@@ -1,6 +1,6 @@
 ---
 title: Deferred — infallible async values
-description: A one-shot async value that supports await but cannot reject, chain, or catch.
+description: Model infallible async values that support await but structurally exclude rejection and chaining.
 ---
 
 `Deferred<A>` is a minimal async value. Like a Promise, it represents a computation that will

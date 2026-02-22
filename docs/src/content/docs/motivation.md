@@ -1,6 +1,6 @@
 ---
 title: Why this exists
-description: Why another FP library, why these guides matter, and why functional programming concepts shouldn't require a vocabulary prerequisite.
+description: The case for functional programming without jargon, and why this library exists.
 ---
 
 There are already many functional programming libraries for TypeScript. Effect is powerful and

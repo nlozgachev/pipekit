@@ -1,6 +1,6 @@
 ---
 title: Task — lazy async
-description: Lazy, infallible async computations — they don't start until called, and they never reject.
+description: Model lazy async computations that are guaranteed to succeed — nothing runs until called.
 ---
 
 `Task<A>` is an async computation with two guarantees: it is **lazy** (nothing runs until you call

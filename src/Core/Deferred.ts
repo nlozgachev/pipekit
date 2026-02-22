@@ -26,8 +26,8 @@ export type Deferred<A> = {
 
 export namespace Deferred {
   /**
-   * Wraps a `Promise` into a `Deferred`, hiding `.catch()`, `.finally()`,
-   * and chainable `.then()`.
+   * Wraps a `Promise` into a `Deferred`, structurally excluding rejection handlers,
+   * `.catch()`, `.finally()`, and chainable `.then()`.
    *
    * @example
    * ```ts

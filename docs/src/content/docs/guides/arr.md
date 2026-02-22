@@ -1,6 +1,6 @@
 ---
 title: Arr — array utilities
-description: Array operations that compose with pipe and return Option instead of undefined.
+description: Work with arrays in a pipeline — data-last utilities that return Option instead of undefined.
 ---
 
 JavaScript arrays come with a full set of built-in methods, but they have two friction points in

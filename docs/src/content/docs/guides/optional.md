@@ -1,6 +1,6 @@
 ---
 title: Optional — nullable paths
-description: Follow a path into your data that might not lead anywhere — optional fields, array elements, and other values that may be absent.
+description: Focus on a field or index that may be absent — read and update nullable paths without null checks.
 ---
 
 If you haven't read the [Lens guide](/guides/lens) first, start there. It covers why mutating

@@ -263,8 +263,6 @@ functions, adding complexity proportional to the square of the number of optic t
 
 ## Acknowledgements
 
-None of this exists in a vacuum.
-
 The ideas behind this library were worked out over years of reading code written by people who
 thought carefully about these problems — the Haskell community's decades of refining abstractions
 down to their most composable form; the Elm community's insistence that good ideas should be
@@ -283,4 +281,4 @@ If you've read this far, thank you for your curiosity. Whether you found the lib
 something interesting with it, spotted something wrong, or just wanted to understand how the pieces
 fit together — that kind of engagement is what makes writing software for others worthwhile.
 
-Write good code. Make the impossible states unrepresentable. Happy coding.
+Write good code. Make the impossible states unrepresentable.

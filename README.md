@@ -2,7 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/@nlozgachev/pipekit?style=for-the-badge&color=000&logo=npm&label&logoColor=fff)](https://www.npmjs.com/package/@nlozgachev/pipekit)[![JSR Version](https://img.shields.io/jsr/v/@nlozgachev/pipekit?style=for-the-badge&color=000&logo=jsr&label&logoColor=fff)](https://jsr.io/@nlozgachev/pipekit)[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/nlozgachev/pipekit/publish.yml?style=for-the-badge&color=000&logo=githubactions&label&logoColor=fff)](https://github.com/nlozgachev/pipekit/actions/workflows/publish.yml)[![Codecov](https://img.shields.io/codecov/c/github/nlozgachev/pipekit?style=for-the-badge&color=000&logo=codecov&label&logoColor=fff)](https://app.codecov.io/github/nlozgachev/pipekit)[![TypeScript](https://img.shields.io/badge/-0?style=for-the-badge&color=000&logo=typescript&label&logoColor=fff)](https://www.typescriptlang.org)[![Deno](https://img.shields.io/badge/-0?style=for-the-badge&color=000&logo=Deno&label&logoColor=fff)](https://deno.com)
 
-A TypeScript toolkit for writing code that means exactly what it says.
+Opinionated functional abstractions for TypeScript.
 
 > **Note:** pipekit is pre-1.0. The API may change between minor versions until the 1.0 release.
 
@@ -27,23 +27,24 @@ No FP jargon required. You won't find `Monad`, `Functor`, or `Applicative` in th
 
 ### pipekit/Core
 
-- **`Option<A>`** — a value that might not exist. Replaces `T | null | undefined`.
-- **`Result<E, A>`** — an operation that succeeds or fails. Replaces `try/catch`.
-- **`Validation<E, A>`** — like `Result`, but accumulates all errors instead of stopping at the
+- **`Option<A>`** — a value that may not exist; propagates absence without null checks.
+- **`Result<E, A>`** — an operation that succeeds or fails with a typed error.
+- **`Validation<E, A>`** — like `Result`, but accumulates every failure instead of stopping at the
   first.
-- **`Task<A>`** — a lazy async operation that doesn't run until called.
-- **`TaskResult<E, A>`** — `Task` + `Result`. A lazy async operation that can fail.
-- **`TaskOption<A>`** — `Task` + `Option`. Replaces `Promise<T | null>`.
-- **`TaskValidation<E, A>`** — `Task` + `Validation`. For async checks that all need to run.
+- **`Task<A>`** — a lazy, infallible async operation; nothing runs until called.
+- **`TaskResult<E, A>`** — a lazy async operation that can fail with a typed error.
+- **`TaskOption<A>`** — a lazy async operation that may produce nothing.
+- **`TaskValidation<E, A>`** — a lazy async operation that accumulates validation errors.
 - **`These<E, A>`** — an inclusive OR: holds an error, a value, or both at once.
 - **`RemoteData<E, A>`** — the four states of a data fetch: `NotAsked`, `Loading`, `Failure`,
   `Success`.
 - **`Lens<S, A>`** — focus on a required field in a nested structure. Read, set, and modify
   immutably.
 - **`Optional<S, A>`** — like `Lens`, but the target may be absent (nullable fields, array indices).
-- **`Reader<R, A>`** — a computation that depends on an environment `R`, resolved later.
-- **`Arr`** — array utilities that return `Option` instead of `undefined`.
-- **`Rec`** — record/object utilities.
+- **`Reader<R, A>`** — a computation that depends on an environment `R`, supplied once at the
+  boundary.
+- **`Arr`** — array utilities, data-last, returning `Option` instead of `undefined`.
+- **`Rec`** — record utilities, data-last, with `Option`-returning key lookup.
 
 ### pipekit/Types
 

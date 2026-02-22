@@ -1,6 +1,6 @@
 ---
 title: Lens — nested updates
-description: Read and update deeply nested object fields without mutation or verbose spread chains.
+description: Focus on a required field in nested data — read, set, and modify immutably without spread chains.
 ---
 
 The most direct way to update a nested field is to just assign to it:

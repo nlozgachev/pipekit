@@ -1,6 +1,6 @@
 ---
 title: Reader — deferred dependencies
-description: Describe computations that declare what they need, compose freely, and receive it once at the edge.
+description: Model computations that depend on a shared environment, supplied once at the boundary.
 ---
 
 Some values belong to the pipeline, not to any individual function — a database connection, an API
