@@ -29,8 +29,8 @@ With `Option`, the absence is encoded in the type itself. You can't accidentally
 the operations that work on an `Option` handle both cases for you:
 
 ```ts
-import { Option } from "@nlozgachev/pipekit/Core";
-import { pipe } from "@nlozgachev/pipekit/Composition";
+import { Option } from "pipelined/core";
+import { pipe } from "pipelined/composition";
 
 declare function getUser(id: string): Option<User>;
 

@@ -8,15 +8,15 @@ await build({
   entryPoints: [
     "mod.ts",
     {
-      name: "./Composition",
+      name: "./composition",
       path: "./src/Composition/index.ts",
     },
     {
-      name: "./Core",
+      name: "./core",
       path: "./src/Core/index.ts",
     },
     {
-      name: "./Types",
+      name: "./types",
       path: "./src/Types/index.ts",
     },
   ],
@@ -32,15 +32,15 @@ await build({
     target: "ES2022",
   },
   package: {
-    name: "@nlozgachev/pipekit",
+    name: "pipelined",
     version: denoJson.version,
-    homepage: "https://pipekit.lozgachev.dev",
+    homepage: "https://pipelined.lozgachev.dev",
     description: "Simple functional programming toolkit for TypeScript",
     license: "MIT",
     sideEffects: false,
     repository: {
       type: "git",
-      url: "https://github.com/nlozgachev/pipekit",
+      url: "https://github.com/nlozgachev/pipelined",
     },
     keywords: ["functional", "fp", "typescript", "composition", "pipe"],
     engines: { node: ">=22" },

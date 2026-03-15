@@ -11,24 +11,19 @@ export default defineConfig({
   },
   integrations: [
     starlight({
-      title: "@nlozgachev/pipekit",
+      title: "pipelined",
       favicon: "favicon.svg",
       customCss: ["./src/styles/custom.css"],
       social: [
         {
           icon: "github",
           label: "GitHub",
-          href: "https://github.com/nlozgachev/pipekit",
+          href: "https://github.com/nlozgachev/pipelined",
         },
         {
           icon: "npm",
           label: "npm",
-          href: "https://www.npmjs.com/package/@nlozgachev/pipekit",
-        },
-        {
-          icon: "jsr",
-          label: "JSR",
-          href: "https://jsr.io/@nlozgachev/pipekit",
+          href: "https://www.npmjs.com/package/pipelined",
         },
       ],
       plugins: [

@@ -35,8 +35,8 @@ With `Result`, the possibility of failure is part of the type. A function that m
 wrong:
 
 ```ts
-import { Result } from "@nlozgachev/pipekit/Core";
-import { pipe } from "@nlozgachev/pipekit/Composition";
+import { Result } from "pipelined/core";
+import { pipe } from "pipelined/composition";
 
 declare function parseInput(raw: string): Result<string, number>;
 

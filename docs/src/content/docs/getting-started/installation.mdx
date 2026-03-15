@@ -1,38 +1,18 @@
 ---
 title: Installation
-description: Add pipekit to your TypeScript project via npm, JSR, or Deno.
+description: Add pipelined to your TypeScript project via npm.
 ---
 
-import { Tabs, TabItem } from '@astrojs/starlight/components';
+import { Tabs, TabItem } from "@astrojs/starlight/components";
 
 ## Package managers
 
 <Tabs>
-  <TabItem label="npm">
-    ```sh
-    npm add @nlozgachev/pipekit
-    ```
-  </TabItem>
-  <TabItem label="pnpm">
-    ```sh
-    pnpm add @nlozgachev/pipekit
-    ```
-  </TabItem>
-  <TabItem label="yarn">
-    ```sh
-    yarn add @nlozgachev/pipekit
-    ```
-  </TabItem>
-  <TabItem label="bun">
-    ```sh
-    bun add @nlozgachev/pipekit
-    ```
-  </TabItem>
-  <TabItem label="Deno">
-    ```sh
-    deno add jsr:@nlozgachev/pipekit
-    ```
-  </TabItem>
+  <TabItem label="npm">```sh npm add pipelined ```</TabItem>
+  <TabItem label="pnpm">```sh pnpm add pipelined ```</TabItem>
+  <TabItem label="yarn">```sh yarn add pipelined ```</TabItem>
+  <TabItem label="bun">```sh bun add pipelined ```</TabItem>
+  <TabItem label="Deno">```sh deno add npm:pipelined ```</TabItem>
 </Tabs>
 
 ## Imports
@@ -40,16 +20,16 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
 The library is split into three entry points. Import only what you need:
 
 ```ts
-import { Option, Result, Task } from "@nlozgachev/pipekit/Core";
-import { pipe, flow }           from "@nlozgachev/pipekit/Composition";
-import { Brand }                from "@nlozgachev/pipekit/Types";
+import { Option, Result, Task } from "pipelined/core";
+import { pipe, flow } from "pipelined/composition";
+import { Brand } from "pipelined/types";
 ```
 
-| Entry point                      | Contains                                                                                     |
-| -------------------------------- | -------------------------------------------------------------------------------------------- |
-| `@nlozgachev/pipekit/Core`       | `Option`, `Result`, `Validation`, `Task`, `TaskResult`, `TaskOption`, `TaskValidation`, `These`, `RemoteData`, `Lens`, `Optional`, `Reader`, `Arr`, `Rec` |
-| `@nlozgachev/pipekit/Composition`| `pipe`, `flow`, `compose`, `curry`, `tap`, `memoize`, and other function utilities           |
-| `@nlozgachev/pipekit/Types`      | `Brand`, `NonEmptyList`                                                                      |
+| Entry point             | Contains                                                                                                                                                  |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pipelined/core`        | `Option`, `Result`, `Validation`, `Task`, `TaskResult`, `TaskOption`, `TaskValidation`, `These`, `RemoteData`, `Lens`, `Optional`, `Reader`, `Arr`, `Rec` |
+| `pipelined/composition` | `pipe`, `flow`, `compose`, `curry`, `tap`, `memoize`, and other function utilities                                                                        |
+| `pipelined/types`       | `Brand`, `NonEmptyList`                                                                                                                                   |
 
 ## Requirements
 

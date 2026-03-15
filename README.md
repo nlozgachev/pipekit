@@ -1,17 +1,13 @@
-# @nlozgachev/pipekit
+# pipelined
 
-[![npm](https://img.shields.io/npm/v/@nlozgachev/pipekit?style=for-the-badge&color=000&logo=npm&label&logoColor=fff)](https://www.npmjs.com/package/@nlozgachev/pipekit)[![JSR Version](https://img.shields.io/jsr/v/@nlozgachev/pipekit?style=for-the-badge&color=000&logo=jsr&label&logoColor=fff)](https://jsr.io/@nlozgachev/pipekit)[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/nlozgachev/pipekit/publish.yml?style=for-the-badge&color=000&logo=githubactions&label&logoColor=fff)](https://github.com/nlozgachev/pipekit/actions/workflows/publish.yml)[![Codecov](https://img.shields.io/codecov/c/github/nlozgachev/pipekit?style=for-the-badge&color=000&logo=codecov&label&logoColor=fff)](https://app.codecov.io/github/nlozgachev/pipekit)[![TypeScript](https://img.shields.io/badge/-0?style=for-the-badge&color=000&logo=typescript&label&logoColor=fff)](https://www.typescriptlang.org)[![Deno](https://img.shields.io/badge/-0?style=for-the-badge&color=000&logo=Deno&label&logoColor=fff)](https://deno.com)
+[![npm](https://img.shields.io/npm/v/pipelined?style=for-the-badge&color=000&logo=npm&label&logoColor=fff)](https://www.npmjs.com/package/pipelined)[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/nlozgachev/pipelined/publish.yml?style=for-the-badge&color=000&logo=githubactions&label&logoColor=fff)](https://github.com/nlozgachev/pipelined/actions/workflows/publish.yml)[![Codecov](https://img.shields.io/codecov/c/github/nlozgachev/pipelined?style=for-the-badge&color=000&logo=codecov&label&logoColor=fff)](https://app.codecov.io/github/nlozgachev/pipelined)[![TypeScript](https://img.shields.io/badge/-0?style=for-the-badge&color=000&logo=typescript&label&logoColor=fff)](https://www.typescriptlang.org)[![Deno](https://img.shields.io/badge/-0?style=for-the-badge&color=000&logo=Deno&label&logoColor=fff)](https://deno.com)
 
 Opinionated functional abstractions for TypeScript.
 
-> **Note:** pipekit is pre-1.0. The API may change between minor versions until the 1.0 release.
+> **Note:** pipelined is pre-1.0. The API may change between minor versions until the 1.0 release.
 
 ```sh
-# npm / pnpm / yarn / bun
-npm add @nlozgachev/pipekit
-
-# Deno
-deno add jsr:@nlozgachev/pipekit
+npm add pipelined
 ```
 
 ## What is this?
@@ -25,7 +21,7 @@ No FP jargon required. You won't find `Monad`, `Functor`, or `Applicative` in th
 
 ## What's included?
 
-### pipekit/Core
+### pipelined/core
 
 - **`Option<A>`** — a value that may not exist; propagates absence without null checks.
 - **`Result<E, A>`** — an operation that succeeds or fails with a typed error.
@@ -46,12 +42,12 @@ No FP jargon required. You won't find `Monad`, `Functor`, or `Applicative` in th
 - **`Arr`** — array utilities, data-last, returning `Option` instead of `undefined`.
 - **`Rec`** — record utilities, data-last, with `Option`-returning key lookup.
 
-### pipekit/Types
+### pipelined/types
 
 - **`Brand<K, T>`** — nominal typing at compile time, zero runtime cost.
 - **`NonEmptyList<A>`** — an array guaranteed to have at least one element.
 
-### pipekit/Composition
+### pipelined/composition
 
 - **`pipe`**, **`flow`**, **`compose`** — function composition.
 - **`curry`** / **`uncurry`**, **`tap`**, **`memoize`**, and other function utilities.
@@ -59,8 +55,8 @@ No FP jargon required. You won't find `Monad`, `Functor`, or `Applicative` in th
 ## Example
 
 ```ts
-import { Option, Result } from "@nlozgachev/pipekit/Core";
-import { pipe } from "@nlozgachev/pipekit/Composition";
+import { Option, Result } from "pipelined/core";
+import { pipe } from "pipelined/composition";
 
 // Chain nullable lookups without nested null checks
 const city = pipe(
@@ -82,7 +78,7 @@ const record = pipe(
 
 ## Documentation
 
-Full guides and API reference at **[pipekit.lozgachev.dev](https://pipekit.lozgachev.dev)**.
+Full guides and API reference at **[pipelined.lozgachev.dev](https://pipelined.lozgachev.dev)**.
 
 ## License
 

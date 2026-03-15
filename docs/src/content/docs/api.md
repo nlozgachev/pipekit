@@ -1,13 +1,13 @@
 ---
 title: API Reference
-description: Complete reference for all types and functions in pipekit.
+description: Complete reference for all types and functions in pipelined.
 ---
 
 The library is split into three entry points. Each is independently importable.
 
 ## Core
 
-import from `@nlozgachev/pipekit/Core`
+import from `pipelined/core`
 
 | Type                                                    | Description                                                                        |
 | ------------------------------------------------------- | ---------------------------------------------------------------------------------- |
@@ -25,7 +25,7 @@ import from `@nlozgachev/pipekit/Core`
 
 ## Types
 
-import from `@nlozgachev/pipekit/Types`
+import from `pipelined/types`
 
 | Type                                                 | Description                                                                  |
 | ---------------------------------------------------- | ---------------------------------------------------------------------------- |
@@ -34,7 +34,7 @@ import from `@nlozgachev/pipekit/Types`
 
 ## Composition
 
-import from `@nlozgachev/pipekit/Composition`
+import from `pipelined/composition`
 
 | Function                                        | Description                                                                  |
 | ----------------------------------------------- | ---------------------------------------------------------------------------- |

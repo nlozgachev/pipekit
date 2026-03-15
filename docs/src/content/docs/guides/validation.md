@@ -29,8 +29,8 @@ sees the next one. You want to show all three errors at once.
 both error lists are merged:
 
 ```ts
-import { Validation } from "@nlozgachev/pipekit/Core";
-import { pipe } from "@nlozgachev/pipekit/Composition";
+import { Validation } from "pipelined/core";
+import { pipe } from "pipelined/composition";
 
 const validateName = (name: string): Validation<string, string> =>
   name.length > 0

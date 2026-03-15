@@ -46,14 +46,14 @@ Deno.test("juxt - each function receives the same input value", () => {
 
 Deno.test("juxt - works in a pipe chain", () => {
   const result = pipe(
-    "pipekit",
+    "pipelined",
     juxt([
       (s: string) => s.length,
       (s: string) => s.toUpperCase(),
     ]),
   );
 
-  assertEquals(result, [7, "PIPEKIT"]);
+  assertEquals(result, [9, "PIPELINED"]);
 });
 
 Deno.test("juxt - homogeneous array overload returns typed array", () => {

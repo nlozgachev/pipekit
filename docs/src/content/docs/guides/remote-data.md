@@ -30,8 +30,8 @@ showing stale data while `loading` is true.
 time:
 
 ```ts
-import { RemoteData } from "@nlozgachev/pipekit/Core";
-import { pipe } from "@nlozgachev/pipekit/Composition";
+import { RemoteData } from "pipelined/core";
+import { pipe } from "pipelined/composition";
 
 type State = RemoteData<string, User>;
 

@@ -1,6 +1,6 @@
 ---
 title: Design & influences
-description: Where the ideas in pipekit come from, how the internals are structured, and why things are the way they are.
+description: Where the ideas in pipelined come from, how the internals are structured, and why things are the way they are.
 ---
 
 This page is for readers who want to understand the library at a deeper level — the decisions behind
@@ -155,7 +155,7 @@ export namespace Option {
 A single import gives you both:
 
 ```ts
-import { Option } from "@nlozgachev/pipekit/Core";
+import { Option } from "pipelined/core";
 
 const x: Option<number> = Option.some(42); // type and constructor from the same import
 ```

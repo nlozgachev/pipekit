@@ -5,7 +5,7 @@ description: >
   caching, and parallel application.
 ---
 
-The Composition module is the backbone of every pipeline in pipekit. It provides `pipe` and `flow`
+The Composition module is the backbone of every pipeline in pipelined. It provides `pipe` and `flow`
 for sequencing steps, and a set of surrounding utilities for shaping functions before they enter a
 pipeline: currying, flipping argument order, memoizing expensive steps, applying a value to several
 functions at once, and more.
@@ -22,7 +22,7 @@ These three functions express the same idea — sequencing transformations — i
 execution, returning a new function you can call or pass around:
 
 ```ts
-import { flow, pipe } from "@nlozgachev/pipekit/Composition";
+import { flow, pipe } from "pipelined/composition";
 
 // pipe: immediate result
 const slug = pipe(
@@ -46,7 +46,7 @@ const toSlug = flow(
 notation:
 
 ```ts
-import { compose } from "@nlozgachev/pipekit/Composition";
+import { compose } from "pipelined/composition";
 
 const double = (n: number) => n * 2;
 const addOne = (n: number) => n + 1;
@@ -67,7 +67,7 @@ A curried function takes its arguments one at a time. `curry` converts a two-arg
 a curried form — call it with the first argument and get a new function waiting for the second:
 
 ```ts
-import { curry } from "@nlozgachev/pipekit/Composition";
+import { curry } from "pipelined/composition";
 
 const clamp = curry((min: number, n: number) => Math.max(min, n));
 const atLeastZero = clamp(0);
@@ -80,7 +80,7 @@ This is especially useful for creating partially-applied steps for `pipe` and `f
 `curry4` handle three- and four-argument functions:
 
 ```ts
-import { curry3 } from "@nlozgachev/pipekit/Composition";
+import { curry3 } from "pipelined/composition";
 
 const between = curry3(
   (min: number, max: number, n: number) => Math.min(max, Math.max(min, n)),
@@ -99,7 +99,7 @@ useful when you need to call a curried function all at once, or when passing it 
 expects a plain binary function:
 
 ```ts
-import { curry, uncurry } from "@nlozgachev/pipekit/Composition";
+import { curry, uncurry } from "pipelined/composition";
 
 const curriedAdd = curry((a: number, b: number) => a + b);
 const add = uncurry(curriedAdd);
@@ -116,7 +116,7 @@ add(3, 4); // 7
 data-last functions to a data-first form when calling them outside of a pipeline:
 
 ```ts
-import { flip } from "@nlozgachev/pipekit/Composition";
+import { flip } from "pipelined/composition";
 
 const prepend = (prefix: string) => (str: string) => prefix + str;
 const append = flip(prepend);
@@ -130,8 +130,8 @@ data-first is needed — for example, applying a partially-applied transform to 
 rather than wrapping it in an arrow function:
 
 ```ts
-import { flip } from "@nlozgachev/pipekit/Composition";
-import { Option } from "@nlozgachev/pipekit/Core";
+import { flip } from "pipelined/composition";
+import { Option } from "pipelined/core";
 
 // Option.map is data-last: map(fn)(option)
 // flip makes it data-first: mapFirst(option)(fn)
@@ -145,7 +145,7 @@ mapFirst(Option.some(5))((n: number) => n * 2); // Some(10)
 standard way to log, audit, or inspect a value mid-pipeline:
 
 ```ts
-import { pipe, tap } from "@nlozgachev/pipekit/Composition";
+import { pipe, tap } from "pipelined/composition";
 
 const result = pipe(
   rawInput,
@@ -165,9 +165,9 @@ Removing `tap` lines leaves the pipeline's behavior identical.
 most often in `fold` or `match` when one branch should return the value as-is:
 
 ```ts
-import { identity } from "@nlozgachev/pipekit/Composition";
-import { Option } from "@nlozgachev/pipekit/Core";
-import { pipe } from "@nlozgachev/pipekit/Composition";
+import { identity } from "pipelined/composition";
+import { Option } from "pipelined/core";
+import { pipe } from "pipelined/composition";
 
 pipe(Option.some(42), Option.fold(() => 0, identity)); // 42
 ```
@@ -176,7 +176,7 @@ pipe(Option.some(42), Option.fold(() => 0, identity)); // 42
 useful for replacing values in `map`, or for providing fixed fallback functions:
 
 ```ts
-import { constant } from "@nlozgachev/pipekit/Composition";
+import { constant } from "pipelined/composition";
 
 const always42 = constant(42);
 always42(); // 42
@@ -191,7 +191,7 @@ shortcuts for the most common constant values.
 from the first invocation without calling the original function again:
 
 ```ts
-import { once } from "@nlozgachev/pipekit/Composition";
+import { once } from "pipelined/composition";
 
 const initDb = once(() => {
   console.log("Connecting...");
@@ -208,7 +208,7 @@ initDb(); // returns same connection — no log, no second call
 named predicate:
 
 ```ts
-import { not } from "@nlozgachev/pipekit/Composition";
+import { not } from "pipelined/composition";
 
 const isEven = (n: number) => n % 2 === 0;
 const isOdd = not(isEven);
@@ -219,7 +219,7 @@ const isOdd = not(isEven);
 `and` and `or` combine two predicates with short-circuit evaluation:
 
 ```ts
-import { and, or } from "@nlozgachev/pipekit/Composition";
+import { and, or } from "pipelined/composition";
 
 const isPositive = (n: number) => n > 0;
 const isInteger = (n: number) => Number.isInteger(n);
@@ -244,7 +244,7 @@ wrapper functions.
 instead of recomputing:
 
 ```ts
-import { memoize } from "@nlozgachev/pipekit/Composition";
+import { memoize } from "pipelined/composition";
 
 const fibonacci = memoize((n: number): number =>
   n <= 1 ? n : fibonacci(n - 1) + fibonacci(n - 2)
@@ -269,7 +269,7 @@ garbage-collected when the key object is no longer referenced. This is useful fo
 large objects:
 
 ```ts
-import { memoizeWeak } from "@nlozgachev/pipekit/Composition";
+import { memoizeWeak } from "pipelined/composition";
 
 declare const computeLayout: (node: Element) => Layout;
 const cachedLayout = memoizeWeak(computeLayout);
@@ -284,7 +284,7 @@ numbers, strings, and other primitives.
 transformer independently, then passes all results to the combiner:
 
 ```ts
-import { converge } from "@nlozgachev/pipekit/Composition";
+import { converge } from "pipelined/composition";
 
 type Item = { name: string; price: number };
 
@@ -315,7 +315,7 @@ function is a plain unary function that slots directly into a pipeline.
 combiner, it collects them into a typed tuple in the same order as the function array:
 
 ```ts
-import { juxt } from "@nlozgachev/pipekit/Composition";
+import { juxt } from "pipelined/composition";
 
 const parseName = juxt([
   (name: string) => name.split(" ")[0],
@@ -350,7 +350,7 @@ arguments before passing them to `binaryFn`. The primary use is building sort co
 repeating the field access:
 
 ```ts
-import { on } from "@nlozgachev/pipekit/Composition";
+import { on } from "pipelined/composition";
 
 const byLength = on((a: number, b: number) => a - b, (s: string) => s.length);
 ["cherry", "fig", "blueberry", "plum"].sort(byLength);
