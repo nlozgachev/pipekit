@@ -32,17 +32,6 @@ jobs:
         with:
           files: coverage.lcov
 
-  publish-jsr:
-    needs: [verify-version, test]
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: denoland/setup-deno@v2
-      - run: deno publish
-
   publish-npm:
     needs: [verify-version, test]
     runs-on: ubuntu-24.04
