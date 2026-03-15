@@ -82,4 +82,4 @@ Full guides and API reference at **[pipelined.lozgachev.dev](https://pipelined.l
 
 ## License
 
-MIT
+BSD-3-Clause
