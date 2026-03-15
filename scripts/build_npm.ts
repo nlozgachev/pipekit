@@ -36,7 +36,7 @@ await build({
     version: denoJson.version,
     homepage: "https://pipelined.lozgachev.dev",
     description: "Simple functional programming toolkit for TypeScript",
-    license: "MIT",
+    license: "BSD-3-Clause",
     sideEffects: false,
     repository: {
       type: "git",
