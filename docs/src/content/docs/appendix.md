@@ -14,9 +14,10 @@ book.
 
 Most of the core types in this library descend, in some form, from Haskell. `Maybe` became `Option`,
 `Either` became `Result`, and the `IO` type — a lazy, composable wrapper around side effects —
-inspired `Task`. The naming convention of `map`, `chain`, and `fold` follows Haskell's vocabulary
-(translated from `fmap`, `>>=`, and `foldr` into names that describe what they do rather than where
-they come from).
+inspired `Task`. The naming convention of `map` and `chain` follows Haskell's vocabulary (translated
+from `fmap` and `>>=` into names that describe what they do rather than where they come from).
+`fold` is an eliminator — it collapses a type by providing a handler for each case — corresponding
+to Haskell's `maybe :: b -> (a -> b) -> Maybe a -> b` and `either :: (a -> c) -> (b -> c) -> Either a b -> c`.
 
 `These` comes from a Haskell library of the same name. It represents the
 inclusive-OR case: a value that can carry an error, a result, or both simultaneously — which neither

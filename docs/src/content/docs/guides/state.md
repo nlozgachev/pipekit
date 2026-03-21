@@ -9,6 +9,31 @@ configuration through a pipeline. The usual alternatives are to pass the state a
 to every function, or to reach for a mutable variable. Neither is satisfying. `State<S, A>` offers
 a third option: describe the stateful computation as a value, then run it once at the end.
 
+## The problem with threading state manually
+
+When state must flow through several steps, the usual approaches either tangle the signature of
+every function or introduce shared mutation:
+
+```ts
+// Option 1 — explicit parameter threading
+// Every function must accept and return the counter, even when it's not the main concern
+function buildGraph(counter: number): [Graph, number] {
+  const [nodeA, c1] = makeNode("root", counter);
+  const [nodeB, c2] = makeNode("child", c1);
+  const [edge,  c3] = makeEdge(nodeA, nodeB, c2);
+  return [{ nodes: [nodeA, nodeB], edges: [edge] }, c3];
+}
+
+// Option 2 — mutable variable
+// The counter is implicit; any function in scope can corrupt it
+let counter = 0;
+function nextId() { return counter++; }
+```
+
+The first approach is verbose and breaks when you add or remove a step — every caller must be
+updated. The second replaces a typing burden with a correctness burden: nothing stops two functions
+from racing on the shared variable.
+
 ## What a State is
 
 ```ts

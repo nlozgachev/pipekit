@@ -9,6 +9,32 @@ alongside a processed value. The usual approach threads an array through every f
 parameter. `Logged<W, A>` does that threading automatically: each step in a pipeline declares its
 own log entries, and they are concatenated in order without any manual bookkeeping.
 
+## The problem with threading a log manually
+
+The straightforward approach passes a log array into every function and returns a new one alongside
+the result:
+
+```ts
+function normalise(s: string, log: string[]): [string, string[]] {
+  const result = s.trim().toLowerCase();
+  return [result, [...log, `normalise: "${s}" → "${result}"`]];
+}
+
+function truncate(max: number, s: string, log: string[]): [string, string[]] {
+  const result = s.slice(0, max);
+  return [result, [...log, `truncate(${max}): "${s}" → "${result}"`]];
+}
+
+const [step1, log1] = normalise("  Hello  ", []);
+const [step2, log2] = truncate(5, step1, log1);
+// step2 = "hello", log2 = [...]
+```
+
+Every function receives the log as a parameter and returns it as part of its result. Adding a new
+step means threading it through manually. Removing a step means adjusting every caller. And the
+log array has nothing to do with what the functions are actually computing — it's just noise in
+every signature.
+
 ## What a Logged is
 
 ```ts

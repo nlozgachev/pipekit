@@ -3,10 +3,10 @@ title: Task — lazy async
 description: Model lazy async computations that are guaranteed to succeed — nothing runs until called.
 ---
 
-`Task<A>` is an async computation with two guarantees: it is **lazy** (nothing runs until you call
-it) and **infallible** (it always resolves — it never rejects). When failure is possible, that
-failure is encoded in the return type using `TaskResult<E, A>` rather than leaking out as a rejected
-Promise.
+Promises are JavaScript's built-in tool for async work, but they have two quirks that make them
+hard to compose. They start immediately when created, so you can't build a pipeline and hand it
+around before any work begins. And they can reject, leaking failure as an untyped exception that
+callers have no way to anticipate from the return type alone. `Task<A>` solves both.
 
 ## The problems with Promises
 

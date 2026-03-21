@@ -9,7 +9,31 @@ They work, but they don't *compose*. You can't take two boolean functions and co
 third without writing a new function by hand each time. `Predicate<A>` makes boolean checks
 first-class values you can name, reuse, negate, combine, and adapt to new types.
 
-## The type
+## The problem with ad-hoc boolean functions
+
+Combining checks inline is fine for a single call site, but it doesn't scale:
+
+```ts
+// To reuse this later you have to extract and name it yourself every time
+const eligible = users.filter(
+  u => u.age >= 18 && u.subscription === "active" && !u.banned,
+);
+
+// Negating requires wrapping the whole expression
+const ineligible = users.filter(
+  u => !(u.age >= 18 && u.subscription === "active" && !u.banned),
+);
+
+// Adapting to a different type means rewriting the check
+const eligibleOrders = orders.filter(
+  o => o.customer.age >= 18 && o.customer.subscription === "active" && !o.customer.banned,
+);
+```
+
+Each variation is a one-off. There's no way to name the "is eligible" concept once and reuse it,
+negate it, or lift it to work on `Order` as well as `User`.
+
+## The Predicate type
 
 ```ts
 type Predicate<A> = (a: A) => boolean;
