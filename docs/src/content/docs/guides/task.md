@@ -216,7 +216,7 @@ const fetchUser = (id: string): TaskResult<string, User> =>
 const name = pipe(
   fetchUser("123"),
   TaskResult.map((user) => user.name),
-  TaskResult.getOrElse("Unknown"),
+  TaskResult.getOrElse(() => "Unknown"),
 );
 
 await name(); // "Alice" or "Unknown"
@@ -233,7 +233,7 @@ const findUser = (id: string): TaskOption<User> =>
 const displayName = pipe(
   findUser("123"),
   TaskOption.map((user) => user.name),
-  TaskOption.getOrElse("Guest"),
+  TaskOption.getOrElse(() => "Guest"),
 );
 
 await displayName();

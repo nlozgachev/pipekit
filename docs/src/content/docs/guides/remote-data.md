@@ -117,7 +117,7 @@ This lets you transform data as part of a pipeline without breaking out of the `
 const userName = pipe(
   userData, // RemoteData<string, User>
   RemoteData.map((u) => u.name), // RemoteData<string, string>
-  RemoteData.getOrElse("Unknown"),
+  RemoteData.getOrElse(() => "Unknown"),
 );
 ```
 
@@ -168,14 +168,15 @@ pipe(
 
 ## Extracting the value
 
-**`getOrElse`** — returns the success value or a default for any other state. The default can be a
-different type, widening the result to the union of both:
+**`getOrElse`** — returns the success value or a default thunk `() => B` for any other state. The
+thunk is only called when the value is not `Success`. The default can be a different type, widening
+the result to the union of both:
 
 ```ts
-pipe(RemoteData.success(5), RemoteData.getOrElse(0)); // 5
-pipe(RemoteData.loading(), RemoteData.getOrElse(0)); // 0
-pipe(RemoteData.failure("!"), RemoteData.getOrElse(0)); // 0
-pipe(RemoteData.loading<string, number>(), RemoteData.getOrElse(null)); // null — typed as number | null
+pipe(RemoteData.success(5), RemoteData.getOrElse(() => 0)); // 5
+pipe(RemoteData.loading(), RemoteData.getOrElse(() => 0)); // 0
+pipe(RemoteData.failure("!"), RemoteData.getOrElse(() => 0)); // 0
+pipe(RemoteData.loading(), RemoteData.getOrElse(() => null)); // null — typed as number | null
 ```
 
 ## Converting to other types

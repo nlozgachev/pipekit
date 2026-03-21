@@ -43,7 +43,7 @@ declare function parseInput(raw: string): Result<string, number>;
 const value = pipe(
   parseInput(raw),
   Result.map((n) => n * 2), // only runs if parsing succeeded
-  Result.getOrElse(0), // provides the fallback
+  Result.getOrElse(() => 0), // provides the fallback
 );
 ```
 
@@ -101,7 +101,7 @@ pipe(
   parseJson(input),
   Result.map((data) => data.userId),
   Result.map((id) => users.get(id)),
-  Result.getOrElse(null),
+  Result.getOrElse(() => null),
 );
 ```
 
@@ -141,7 +141,7 @@ pipe(
   Result.chain(validateRange), // Result<string, number>
   Result.chain(lookupRecord), // Result<string, Record>
   Result.map((r) => r.name), // Result<string, string>
-  Result.getOrElse("Unknown"),
+  Result.getOrElse(() => "Unknown"),
 );
 ```
 
@@ -149,13 +149,14 @@ If any step returns `Err`, subsequent steps are skipped and the error propagates
 
 ## Extracting the value
 
-**`getOrElse`** — provide a fallback for the error case. The fallback can be a different type,
-widening the result to the union of both:
+**`getOrElse`** — provide a fallback as a thunk `() => B`. The thunk is only called when the
+Result is `Err`, so expensive or side-effectful defaults are never computed unnecessarily. The
+fallback can be a different type, widening the result to the union of both:
 
 ```ts
-pipe(Result.ok(5), Result.getOrElse(0)); // 5
-pipe(Result.err("oops"), Result.getOrElse(0)); // 0
-pipe(Result.err<string, number>("oops"), Result.getOrElse(null)); // null — typed as number | null
+pipe(Result.ok(5), Result.getOrElse(() => 0)); // 5
+pipe(Result.err("oops"), Result.getOrElse(() => 0)); // 0
+pipe(Result.err("oops"), Result.getOrElse(() => null)); // null — typed as number | null
 ```
 
 **`match`** — handle each case explicitly:
@@ -192,8 +193,11 @@ can produce a different success type, widening the result to `Result<E, A | B>`:
 ```ts
 pipe(
   fetchFromPrimary(url),
-  Result.recover(() => fetchFromFallback(url)),
-  Result.getOrElse(cachedValue),
+  Result.recover((e) => {
+    console.warn("Primary failed:", e);
+    return fetchFromFallback(url);
+  }),
+  Result.getOrElse(() => cachedValue),
 );
 ```
 

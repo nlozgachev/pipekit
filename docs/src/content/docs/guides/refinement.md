@@ -169,7 +169,7 @@ const parseSlug = pipe(
   rawInput,
   Refinement.toFilter(isValidSlug),
   Option.map(slug => `/posts/${slug}`),
-  Option.getOrElse("/posts/untitled"),
+  Option.getOrElse(() => "/posts/untitled"),
 );
 ```
 

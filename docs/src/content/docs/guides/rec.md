@@ -28,7 +28,7 @@ pipe(
   config,
   Rec.lookup("timeout"), // Option<string>
   Option.chain(parseNumber), // Option<number>
-  Option.getOrElse(30_000),
+  Option.getOrElse(() => 30_000),
 );
 ```
 

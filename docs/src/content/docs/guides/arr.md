@@ -37,7 +37,7 @@ pipe(
   users,
   Arr.head, // Option<User>
   Option.map((u) => u.displayName), // Option<string>
-  Option.getOrElse("No users"),
+  Option.getOrElse(() => "No users"),
 );
 ```
 
@@ -165,7 +165,7 @@ pipe([1, 2, 3], Arr.zip(["a", "b"])); // [[1, "a"], [2, "b"]]
 ```ts
 pipe(
   [1, 2, 3],
-  Arr.zipWith((a, b) => `${a}${b}`, ["a", "b"]),
+  Arr.zipWith((a, b) => `${a}${b}`)(["a", "b"]),
 ); // ["1a", "2b"]
 ```
 
@@ -242,8 +242,25 @@ pipe(
 )(); // Promise<User[]> — all fetches run in parallel
 ```
 
-**`sequence`**, **`sequenceResult`**, **`sequenceTask`** — shorthand for when you already have an
-array of containers and want to flip `Array<Option<A>>` into `Option<Array<A>>`:
+**`traverseTaskResult`** — maps to `TaskResult` and runs sequentially, short-circuiting on the
+first `Err`:
+
+```ts
+const validate = (id: string): TaskResult<string, User> =>
+  TaskResult.tryCatch(
+    () => fetch(`/users/${id}`).then((r) => r.json()),
+    (e) => `Failed to load ${id}: ${e}`,
+  );
+
+pipe(
+  ["u1", "u2", "u3"],
+  Arr.traverseTaskResult(validate),
+)(); // TaskResult<string, User[]> — stops at the first failure
+```
+
+**`sequence`**, **`sequenceResult`**, **`sequenceTask`**, **`sequenceTaskResult`** — shorthand for
+when you already have an array of containers and want to flip `Array<Option<A>>` into
+`Option<Array<A>>`:
 
 ```ts
 Arr.sequence([Option.some(1), Option.some(2)]); // Some([1, 2])

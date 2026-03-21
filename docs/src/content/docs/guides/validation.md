@@ -173,13 +173,13 @@ pipe(
 
 ## Extracting the value
 
-**`getOrElse`** — provide a fallback. The fallback can be a different type, widening the result to
-the union of both:
+**`getOrElse`** — provide a fallback as a thunk `() => B`, called only when the result is
+`Invalid`. The fallback can be a different type, widening the result to the union of both:
 
 ```ts
-pipe(Validation.valid(5), Validation.getOrElse(0)); // 5
-pipe(Validation.invalid("oops"), Validation.getOrElse(0)); // 0
-pipe(Validation.invalid<string, number>("oops"), Validation.getOrElse(null)); // null — typed as number | null
+pipe(Validation.valid(5), Validation.getOrElse(() => 0)); // 5
+pipe(Validation.invalid("oops"), Validation.getOrElse(() => 0)); // 0
+pipe(Validation.invalid("oops"), Validation.getOrElse(() => null)); // null — typed as number | null
 ```
 
 **`match`** — handle each case explicitly. The invalid handler receives the full error list:

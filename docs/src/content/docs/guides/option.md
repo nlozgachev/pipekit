@@ -37,7 +37,7 @@ declare function getUser(id: string): Option<User>;
 const name = pipe(
   getUser(id),
   Option.map((user) => user.name), // only runs if user exists
-  Option.getOrElse("Unknown"), // provides the fallback
+  Option.getOrElse(() => "Unknown"), // provides the fallback
 );
 ```
 
@@ -61,7 +61,7 @@ Option.fromUndefined(value); // Some if defined, None if undefined
 const setting = pipe(
   config.get("theme"), // string | undefined
   Option.fromNullable, // Option<string>
-  Option.getOrElse("light"), // string
+  Option.getOrElse(() => "light"), // string
 );
 ```
 
@@ -87,7 +87,7 @@ pipe(
   Option.fromNullable(user),
   Option.map((u) => u.address),
   Option.map((a) => a.city),
-  Option.getOrElse("Unknown city"),
+  Option.getOrElse(() => "Unknown city"),
 );
 ```
 
@@ -131,13 +131,14 @@ This is useful for narrowing values within a pipeline without breaking out of th
 
 At the edge of your pipeline, you need to get a plain value back. There are a few ways:
 
-**`getOrElse`** — provide a fallback value. The fallback can be a different type, which widens the
-result to the union of both:
+**`getOrElse`** — provide a fallback as a thunk `() => B`. The thunk is only called when the
+Option is `None`, so expensive or side-effectful defaults are never computed unnecessarily. The
+fallback can be a different type, widening the result to the union of both:
 
 ```ts
-pipe(Option.some(5), Option.getOrElse(0)); // 5
-pipe(Option.none(), Option.getOrElse(0)); // 0
-pipe(Option.none<string>(), Option.getOrElse(null)); // null — typed as string | null
+pipe(Option.some(5), Option.getOrElse(() => 0)); // 5
+pipe(Option.none(), Option.getOrElse(() => 0)); // 0
+pipe(Option.none(), Option.getOrElse(() => null)); // null — typed as number | null
 ```
 
 **`match`** — handle each case explicitly, producing a value from either branch:
@@ -182,7 +183,7 @@ can produce a different type, widening the result to `Option<A | B>`:
 pipe(
   Option.fromNullable(cache.get(key)),
   Option.recover(() => Option.fromNullable(db.get(key))),
-  Option.getOrElse(defaultValue),
+  Option.getOrElse(() => defaultValue),
 );
 ```
 
