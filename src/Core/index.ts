@@ -5,6 +5,8 @@ export * from "./Option.ts";
 export * from "./Reader.ts";
 export * from "./Optional.ts";
 export * from "./Rec.ts";
+export * from "./Predicate.ts";
+export * from "./Refinement.ts";
 export * from "./RemoteData.ts";
 export * from "./Result.ts";
 export * from "./Task.ts";

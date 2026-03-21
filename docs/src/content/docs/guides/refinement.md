@@ -1,0 +1,236 @@
+---
+title: "Refinement — type predicates"
+description: Composable runtime checks that carry compile-time type narrowing.
+---
+
+When you write `typeof x === "string"` or `n > 0` you get a boolean back, but TypeScript also
+learns something: in the `true` branch `x` is a `string`, in the `false` branch it is not. A
+`Refinement<A, B>` packages that narrowing into a first-class, reusable value so you can compose,
+combine, and pass these checks around like any other function — without losing the type information
+at each step.
+
+## The problem with scattered type guards
+
+Projects grow type guards organically. A `isNonEmpty` guard lives in one file, an `isValidEmail`
+guard in another, and `isParsedDate` in a third. None of them compose: you cannot combine two
+boolean functions and get back a new type guard. Every time you need a stricter check you write a
+new one-off guard, and the narrowing only works at the call site.
+
+```ts
+// Works, but ad-hoc and not reusable as a unit
+function processInput(raw: string) {
+  if (raw.length > 0 && raw.includes("@")) {
+    // TypeScript doesn't know this is "NonEmpty & HasAt"
+    sendEmail(raw);
+  }
+}
+```
+
+A `Refinement<A, B>` solves this by making each check a named, composable value.
+
+## What a Refinement is
+
+```ts
+type Refinement<A, B extends A> = (a: A) => a is B;
+```
+
+At runtime it is just a predicate function returning `true` or `false`. At compile time it is a
+type predicate: TypeScript narrows the argument to `B` in every branch where the call returns
+`true`. Because `B extends A`, every `B` is also an `A` — the refinement only *narrows*, never
+*widens*.
+
+## Creating a Refinement with `make`
+
+`Refinement.make` turns any boolean predicate into a typed refinement. This is an **unsafe cast** —
+you are asserting to TypeScript that the predicate correctly characterises `B`. Use it only when
+bootstrapping a new named domain type; compose from there.
+
+```ts
+import { Brand } from "@nlozgachev/pipelined/types";
+import { Refinement } from "@nlozgachev/pipelined/core";
+
+type PositiveNumber = Brand<"PositiveNumber", number>;
+type EvenNumber     = Brand<"EvenNumber", number>;
+
+const isPositive: Refinement<number, PositiveNumber> =
+  Refinement.make(n => n > 0);
+
+const isEven: Refinement<number, EvenNumber> =
+  Refinement.make(n => n % 2 === 0);
+
+isPositive(42);  // true  — 42 is narrowed to PositiveNumber
+isPositive(-1);  // false
+```
+
+## Composing with `compose`
+
+When you have two refinements where the output of the first is the input of the second, `compose`
+chains them into a single A → C narrowing.
+
+```ts
+type NonEmptyString = string & { readonly _nonEmpty: true };
+type TrimmedString  = NonEmptyString & { readonly _trimmed: true };
+
+const isNonEmpty: Refinement<string, NonEmptyString> =
+  Refinement.make(s => s.length > 0);
+
+const isTrimmed: Refinement<NonEmptyString, TrimmedString> =
+  Refinement.make(s => s === s.trim());
+
+// Compose: string → NonEmptyString → TrimmedString collapses to string → TrimmedString
+const isNonEmptyTrimmed: Refinement<string, TrimmedString> = pipe(
+  isNonEmpty,
+  Refinement.compose(isTrimmed),
+);
+
+isNonEmptyTrimmed("hello");    // true
+isNonEmptyTrimmed("  hello");  // false — not trimmed
+isNonEmptyTrimmed("");         // false — not non-empty
+```
+
+## Intersecting with `and`
+
+When both refinements apply to the same base type and you need both to hold at once, `and` produces
+a `B & C` refinement.
+
+```ts
+type PositiveNumber = number & { readonly _positive: true };
+type EvenNumber     = number & { readonly _even: true };
+
+const isPositive: Refinement<number, PositiveNumber> =
+  Refinement.make(n => n > 0);
+
+const isEven: Refinement<number, EvenNumber> =
+  Refinement.make(n => n % 2 === 0);
+
+const isPositiveEven: Refinement<number, PositiveNumber & EvenNumber> = pipe(
+  isPositive,
+  Refinement.and(isEven),
+);
+
+isPositiveEven(4);   // true  — positive and even
+isPositiveEven(3);   // false — positive but odd
+isPositiveEven(-2);  // false — even but not positive
+```
+
+## Taking either with `or`
+
+`or` produces a `B | C` refinement that passes when at least one of the two checks succeeds.
+
+```ts
+type AdminUser  = { role: "admin" };
+type SuperUser  = { role: "super" };
+type AnyUser    = { role: string };
+
+const isAdmin: Refinement<AnyUser, AdminUser> =
+  Refinement.make(u => u.role === "admin");
+
+const isSuper: Refinement<AnyUser, SuperUser> =
+  Refinement.make(u => u.role === "super");
+
+const isPrivileged: Refinement<AnyUser, AdminUser | SuperUser> = pipe(
+  isAdmin,
+  Refinement.or(isSuper),
+);
+
+isPrivileged({ role: "admin" });  // true
+isPrivileged({ role: "super" });  // true
+isPrivileged({ role: "guest" });  // false
+```
+
+## Bridging to Option with `toFilter`
+
+`toFilter` converts a refinement into an `(a: A) => Option<B>` function, ready to drop into a
+pipeline. This is the idiomatic way to turn validation into an Optional presence.
+
+```ts
+type NonEmptyString = Brand<"NonEmpty", string>;
+const isNonEmpty: Refinement<string, NonEmptyString> =
+  Refinement.make(s => s.length > 0);
+
+// Validate a config value that may be blank
+const parseTitle = (raw: string): Option<NonEmptyString> =>
+  pipe(raw.trim(), Refinement.toFilter(isNonEmpty));
+
+parseTitle("My Report");  // Some("My Report")
+parseTitle("   ");        // None — trimmed to empty
+```
+
+Combining multiple refinements keeps the pipeline linear:
+
+```ts
+const isValidSlug: Refinement<string, NonEmptyString> = pipe(
+  isNonEmpty,
+  Refinement.and(Refinement.make(s => /^[a-z0-9-]+$/.test(s))),
+);
+
+const rawInput = "hello-world";
+const parseSlug = pipe(
+  rawInput,
+  Refinement.toFilter(isValidSlug),
+  Option.map(slug => `/posts/${slug}`),
+  Option.getOrElse("/posts/untitled"),
+);
+```
+
+## Bridging to Result with `toResult`
+
+`toResult` converts a refinement into an `(a: A) => Result<E, B>` function, making validation
+failures explicit as typed errors.
+
+```ts
+type PositiveNumber = Brand<"PositiveNumber", number>;
+const isPositive: Refinement<number, PositiveNumber> =
+  Refinement.make(n => n > 0);
+
+const parseQuantity = (raw: number): Result<string, PositiveNumber> =>
+  pipe(raw, Refinement.toResult(isPositive, n => `Quantity must be positive, got ${n}`));
+
+parseQuantity(5);   // Ok(5)
+parseQuantity(-1);  // Err("Quantity must be positive, got -1")
+```
+
+This integrates naturally with `Result.chain` for multi-step validation:
+
+```ts
+type NonEmptyString = string & { readonly _nonEmpty: true };
+type ValidEmail     = NonEmptyString & { readonly _validEmail: true };
+
+const isNonEmpty: Refinement<string, NonEmptyString> =
+  Refinement.make(s => s.length > 0);
+
+const isEmail: Refinement<NonEmptyString, ValidEmail> =
+  Refinement.make(s => s.includes("@") && s.includes("."));
+
+const validateEmail = (raw: string): Result<string, ValidEmail> =>
+  pipe(
+    raw,
+    Refinement.toResult(isNonEmpty, () => "Email cannot be empty"),
+    Result.chain(s => pipe(s, Refinement.toResult(isEmail, () => "Not a valid email address"))),
+  );
+
+validateEmail("user@example.com");  // Ok("user@example.com")
+validateEmail("");                  // Err("Email cannot be empty")
+validateEmail("notanemail");        // Err("Not a valid email address")
+```
+
+## When to use Refinement
+
+- You want to represent domain invariants (non-empty, positive, valid format) as reusable,
+  composable named types rather than ad-hoc boolean checks.
+- You need to combine two or more predicates into a single narrowing (`and`, `or`, `compose`)
+  without writing a new type guard by hand.
+- You want to connect a runtime check to `Option` or `Result` pipelines using `toFilter` or
+  `toResult`.
+- You have a set of related refinements that build on each other (e.g. `NonEmptyString` →
+  `TrimmedString` → `SlugString`) and want the narrowing to compose automatically.
+
+**Use `Predicate<A>` instead** when you need to combine or reuse boolean checks but don't require
+the narrowed type to flow into subsequent operations. `Predicate` supports `using` (adapting
+checks to richer input types) and `all`/`any` for variable-length combinations — operations that
+aren't meaningful for `Refinement` because they discard the narrowing. Every `Refinement<A, B>` is
+a `Predicate<A>`, so `Predicate.fromRefinement` lets you mix both in the same composition.
+
+**Keep using plain type guards when** the check is truly one-off and will never be composed,
+reused, or passed as a value. Wrapping `typeof x === "string"` in a `Refinement` is unnecessary
+overhead if it is used exactly once in a simple conditional.
